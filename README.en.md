@@ -111,6 +111,10 @@ docs/assets/         screenshots
 
 Editing CSS or the template requires rebuilding `lib/client.js`, otherwise the app keeps loading the previous artifact.
 
+## Getting listed
+
+The dsh ecosystem has several markets: the built-in page ships with no index, the curated awesome-dsh-plugin list (published as `dsh-plugin-catalog`) takes PRs, dsh.so takes site submissions with a sandbox install test, and npm-crawling registries only see published packages. Measured sizes, the submission template and CDN caveats: [docs/SUBMIT.md](docs/SUBMIT.md).
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

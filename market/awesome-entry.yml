@@ -1,0 +1,21 @@
+# 投稿到 awesome-dsh-plugin 的条目（PR 用）
+
+`awesome-dsh-plugin` 的列表数据在 `data/plugins/`，一个插件一个 YAML 文件。
+把这个文件复制过去，改名 `aivos-xie__dsh-glass-ui.yml`，提 PR 即可 —— 不要手改 README。
+
+```yaml
+url: https://github.com/aivos-xie/dsh-glass-ui
+name: aivos-xie/dsh-glass-ui
+category: theme
+description:
+  en: Glassmorphism skin for DeepSeek Harness — layered frost on the conversation, sidebar, composer and overlays, three rendering tiers, adjustable intensity and background tone, live system-preference support, and an empty host-side apply() so it registers no tools.
+  zh: 玻璃外观皮肤——对话、侧栏、输入区与浮层分层磨砂，三档渲染质量、可调强度与背景色调，实时跟随系统辅助功能偏好，宿主侧 apply() 为空实现，不注册任何工具。
+```
+
+要点（来自 `contributing.md`）：
+
+- 只有 `description.en` 必填，`zh` 可交给维护者补。
+- `description` 里出现 `: `（冒号+空格）必须整行加引号，否则 YAML 解析失败。
+- `category` 取值集合：`agi ui usage theme model identity session memory tools wsl browser vision voice docs skill workflow git notify dev security remote market fun`；本插件选 `theme`。
+- 图标可选，只接受 GitHub 托管的位图（png），缺省回退作者头像。
+- 合并后 README 由脚本重新生成，`dsh-plugin-catalog`（市场索引）随之更新，通常几分钟内生效。

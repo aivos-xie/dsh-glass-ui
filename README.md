@@ -113,6 +113,10 @@ docs/assets/         预览图
 
 CSS 与模板改成什么样，`lib/client.js` 就得重新构建一次，否则应用加载的还是旧产物。
 
+## 上架路线
+
+dsh 生态的市场不止一家：官方市场页不带源、策展清单（awesome-dsh-plugin → `dsh-plugin-catalog`）走 PR、`dsh.so` 走站点提交、自动爬取的注册表只认 npm 包。三类入口的实测数据、投稿模板与 CDN 坑见 [docs/SUBMIT.md](docs/SUBMIT.md)。
+
 ## License
 
 MIT，见 [LICENSE](LICENSE)。
