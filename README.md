@@ -2,6 +2,8 @@
 
 [简体中文](README.md) | [English](README.en.md)
 
+**[演示页（截图） →](https://aivos-xie.github.io/dsh-glass-ui/)** · [安装教程](INSTALL.md) · [最新版本](https://github.com/aivos-xie/dsh-glass-ui/releases/latest)
+
 给 DeepSeek Harness（dsh）用的玻璃外观插件：对话、侧栏、输入区和浮层分层磨砂，跟随宿主深浅主题，强度和背景色调都能实时调。
 
 ![桌面版主界面](docs/assets/overview.jpg)

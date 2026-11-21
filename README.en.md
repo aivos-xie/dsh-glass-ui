@@ -2,6 +2,8 @@
 
 [简体中文](README.md) | [English](README.en.md)
 
+**[Demo page (screenshots) →](https://aivos-xie.github.io/dsh-glass-ui/)** · [Install guide](INSTALL.md) · [Latest release](https://github.com/aivos-xie/dsh-glass-ui/releases/latest)
+
 A glassmorphism skin for DeepSeek Harness (dsh): layered frost on the conversation, sidebar, composer and overlays, following the host's light and dark themes, with live controls for intensity and background tone.
 
 ![Desktop app](docs/assets/overview.jpg)
