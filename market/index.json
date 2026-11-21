@@ -1,0 +1,77 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Glass UI Plugin Index",
+    "zh": "Glass UI 插件源"
+  },
+  "description": {
+    "en": "Glassmorphism skin for DeepSeek Harness: layered frost, adjustable intensity and background tone, following light and dark themes.",
+    "zh": "DeepSeek Harness 玻璃外观插件源：分层磨砂、可调玻璃强度与背景色调，跟随深浅主题。"
+  },
+  "metadata": {
+    "categories": {
+      "appearance": {
+        "title": {
+          "en": "Appearance",
+          "zh": "外观"
+        }
+      }
+    },
+    "labels": {
+      "glassmorphism": {
+        "title": {
+          "en": "Glassmorphism",
+          "zh": "玻璃拟态"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "@dsh-desktop/glass-ui",
+      "title": {
+        "en": "Glass UI",
+        "zh": "Glass UI 玻璃外观"
+      },
+      "description": {
+        "en": "Layered glass on the conversation, sidebar, composer and overlays, with three rendering tiers, intensity, background tone, glass messages and live system-preference support.",
+        "zh": "为对话、侧栏、输入区和浮层加分层磨砂，含三档渲染质量、玻璃强度、背景色调、消息玻璃与系统偏好跟随。"
+      },
+      "icon": "./icon.svg",
+      "author": "aivos-xie",
+      "homepage": "https://github.com/aivos-xie/dsh-glass-ui#readme",
+      "repository": {
+        "url": "https://github.com/aivos-xie/dsh-glass-ui"
+      },
+      "metadata": {
+        "category": "appearance",
+        "keywords": [
+          "glass",
+          "frosted",
+          "backdrop-filter",
+          "theme",
+          "ui-skin",
+          "玻璃",
+          "磨砂"
+        ],
+        "labels": [
+          "glassmorphism"
+        ]
+      },
+      "versions": [
+        {
+          "version": "1.4.1",
+          "publishTimestamp": 1795282111,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/aivos-xie/dsh-glass-ui",
+            "commit": "59f7c016403c4fe5479558061858c232cbd76e36"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-rc.2"
+          }
+        }
+      ]
+    }
+  ]
+}
