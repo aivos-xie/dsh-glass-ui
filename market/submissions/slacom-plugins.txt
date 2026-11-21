@@ -1,0 +1,3 @@
+
+# Glass UI — glassmorphism skin for dsh (git source, client-only)
+https://github.com/aivos-xie/dsh-glass-ui

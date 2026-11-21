@@ -1,0 +1,27 @@
+{
+  "name": "@dsh-desktop/glass-ui",
+  "title": { "en": "Glass UI", "zh": "玻璃外观" },
+  "description": {
+    "en": "Glassmorphism skin for dsh: layered frost on the conversation, sidebar, composer and overlays, with three rendering tiers, adjustable intensity and background tone, glass message bubbles, and live support for reduced-motion, reduced-transparency, increased-contrast and forced-colors. Client-only; the host-side apply() registers no tools and makes no network requests.",
+    "zh": "玻璃外观皮肤：对话、侧栏、输入区与浮层分层磨砂，三档渲染质量、可调强度与背景色调、消息玻璃，跟随减少动效/减少透明/增加对比/强制颜色四种系统偏好。纯客户端，宿主侧 apply() 不注册工具、不发网络请求。"
+  },
+  "homepage": "https://github.com/aivos-xie/dsh-glass-ui",
+  "repository": { "url": "https://github.com/aivos-xie/dsh-glass-ui" },
+  "icon": "https://cdn.jsdelivr.net/gh/aivos-xie/dsh-glass-ui@main/docs/assets/overview.jpg",
+  "metadata": {
+    "category": "theme",
+    "keywords": ["glass", "glassmorphism", "theme", "appearance", "skin", "ui", "css"]
+  },
+  "versions": [
+    {
+      "version": "1.4.1",
+      "publishTimestamp": 1795285415,
+      "source": {
+        "type": "git",
+        "url": "https://github.com/aivos-xie/dsh-glass-ui",
+        "commit": "ddec6c0e6d11df237f1f5fffe0db8f1567b8225f"
+      },
+      "engines": { "dsh": ">=0.2.1-rc.2" }
+    }
+  ]
+}
