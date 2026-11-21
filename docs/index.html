@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Glass UI 玻璃外观 · DSH 插件演示</title>
+<meta name="description" content="DeepSeek Harness 玻璃外观插件：分层磨砂、可调玻璃强度与背景色调，跟随深浅主题。" />
+<link rel="icon" href="./assets/icon.svg" />
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #eef2fb;
+    --ink-2: #a7b1c7;
+    --ink-3: #78829a;
+    --accent: #7f9dff;
+    --line: rgba(255, 255, 255, .12);
+    --glass: rgba(255, 255, 255, .055);
+    --glass-2: rgba(255, 255, 255, .085);
+    --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    font: 15px/1.65 "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    color: var(--ink);
+    background: #080b14;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -20vmax;
+    z-index: -1;
+    background:
+      radial-gradient(38vmax 32vmax at 18% 8%, rgba(76, 111, 255, .55), transparent 62%),
+      radial-gradient(42vmax 34vmax at 82% 22%, rgba(147, 96, 255, .42), transparent 64%),
+      radial-gradient(46vmax 36vmax at 62% 88%, rgba(24, 168, 197, .38), transparent 66%),
+      #070a12;
+    filter: blur(6px) saturate(125%);
+    animation: drift 52s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from { transform: translate3d(-1.5%, -1%, 0) scale(1.02); }
+    to   { transform: translate3d(1.8%, 1.4%, 0) scale(1.06); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
+  }
+  .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 72px; }
+
+  header.hero { display: flex; flex-direction: column; gap: 18px; margin-bottom: 34px; }
+  .badge {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+    background: var(--glass); backdrop-filter: blur(14px) saturate(160%);
+    font-size: 12.5px; color: var(--ink-2); letter-spacing: .02em;
+  }
+  .badge i { width: 7px; height: 7px; border-radius: 50%; background: #35c98a; box-shadow: 0 0 10px #35c98a; }
+  h1 { margin: 0; font-size: clamp(30px, 4.4vw, 46px); line-height: 1.15; letter-spacing: -.01em; }
+  h1 span { color: var(--accent); }
+  .lede { margin: 0; max-width: 62ch; color: var(--ink-2); font-size: 16px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border-radius: 12px; border: 1px solid var(--line); background: var(--glass);
+    color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 500;
+    backdrop-filter: blur(14px) saturate(160%);
+    transition: background .16s ease, border-color .16s ease, transform .16s ease;
+  }
+  .btn:hover { background: var(--glass-2); border-color: rgba(255, 255, 255, .22); transform: translateY(-1px); }
+  .btn.primary { background: linear-gradient(180deg, rgba(127, 157, 255, .95), rgba(93, 124, 255, .92)); border-color: rgba(255, 255, 255, .22); color: #fff; }
+  .btn.primary:hover { background: linear-gradient(180deg, rgba(150, 175, 255, .98), rgba(108, 138, 255, .95)); }
+
+  .card {
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--glass); backdrop-filter: blur(22px) saturate(160%);
+    box-shadow: 0 30px 70px -44px rgba(0, 0, 0, .95), inset 0 1px 0 rgba(255, 255, 255, .08);
+  }
+
+  section { margin-top: 34px; }
+  h2 { font-size: 15px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 14px; font-weight: 600; }
+
+  .shot { padding: 12px; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 14px; cursor: zoom-in; }
+  .shot figcaption { display: flex; gap: 10px; align-items: baseline; padding: 12px 8px 4px; color: var(--ink-3); font-size: 13px; }
+  .shot figcaption b { color: var(--ink-2); font-weight: 600; }
+  .shots { display: grid; gap: 18px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(238px, 1fr)); gap: 14px; }
+  .feat { padding: 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(16px) saturate(150%); }
+  .feat h3 { margin: 0 0 6px; font-size: 14.5px; }
+  .feat p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+  .feat code { font-size: 12.5px; color: var(--accent); background: rgba(127, 157, 255, .12); padding: 1px 5px; border-radius: 5px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; overflow: hidden; border-radius: 16px; }
+  thead th { text-align: left; color: var(--ink-3); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, .06); color: var(--ink-2); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+
+  pre {
+    margin: 0; padding: 16px 18px; border-radius: 16px; border: 1px solid var(--line);
+    background: rgba(6, 9, 16, .62); backdrop-filter: blur(16px);
+    overflow-x: auto; font: 13px/1.7 ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+    color: #d7e1ff;
+  }
+  pre .c { color: #6b7488; }
+  .copy { position: relative; }
+  .copy button {
+    position: absolute; top: 10px; right: 10px; padding: 5px 10px; font-size: 11.5px;
+    color: var(--ink-2); background: rgba(255, 255, 255, .07); border: 1px solid var(--line);
+    border-radius: 8px; cursor: pointer;
+  }
+  .copy button:hover { color: var(--ink); background: rgba(255, 255, 255, .13); }
+
+  footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, .08); color: var(--ink-3); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; }
+  footer a { color: var(--ink-2); }
+
+  dialog.lightbox {
+    border: 0; padding: 0; background: transparent; max-width: min(96vw, 1800px); max-height: 94vh;
+  }
+  dialog.lightbox::backdrop { background: rgba(4, 6, 12, .82); backdrop-filter: blur(6px); }
+  dialog.lightbox img { display: block; width: 100%; height: auto; border-radius: 12px; box-shadow: 0 40px 90px -30px #000; }
+  dialog.lightbox form { position: fixed; top: 14px; right: 18px; }
+  dialog.lightbox button {
+    width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+    border: 1px solid var(--line); background: rgba(20, 24, 36, .8); color: #fff; font-size: 18px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="badge"><i></i>DeepSeek Harness 插件 · v1.4.1 · MIT</span>
+    <h1>Glass UI <span>玻璃外观</span></h1>
+    <p class="lede">给 dsh 的对话、侧栏、输入区和浮层加一层分层磨砂：强度、背景色调、消息玻璃都能实时调，跟随宿主深浅主题与系统辅助功能偏好。</p>
+    <div class="actions">
+      <a class="btn primary" href="https://github.com/aivos-xie/dsh-glass-ui">GitHub 仓库</a>
+      <a class="btn" href="https://github.com/aivos-xie/dsh-glass-ui/blob/main/INSTALL.md">安装教程</a>
+      <a class="btn" href="https://github.com/aivos-xie/dsh-glass-ui/releases/latest">下载 v1.4.1</a>
+    </div>
+  </header>
+
+  <section class="shots">
+    <figure class="card shot" style="margin:0">
+      <img src="./assets/overview.jpg" alt="Glass UI 在桌面版主界面的效果：侧栏、输入区、右栏三块分层玻璃" data-zoom />
+      <figcaption><b>主界面</b><span>侧栏 / 输入区 / 右栏三层玻璃，顶边一道细高光，底景为极光画布</span></figcaption>
+    </figure>
+    <figure class="card shot" style="margin:0">
+      <img src="./assets/settings.jpg" alt="设置页中的 Glass UI 玻璃外观面板：渲染质量、玻璃强度 97%、背景色调、四个开关" data-zoom />
+      <figcaption><b>设置面板</b><span>渲染质量三档、玻璃强度 0–100%、背景色调三种、消息玻璃 / 减少透明度 / 动效 / 纹理</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>它做了什么</h2>
+    <div class="grid">
+      <div class="feat"><h3>三层玻璃</h3><p>画布极光底景 → 栏级玻璃板（22px 圆角、26px 模糊、顶部高光）→ 卡级薄玻璃；输入区是最高一级 40px。</p></div>
+      <div class="feat"><h3>token 层接管</h3><p>约 140 个 <code>--dsw-*</code> 变量写成深浅双值，压一层到宿主主题上，第三方插件读 token 也会一起玻璃化。</p></div>
+      <div class="feat"><h3>实时可调</h3><p>强度、色调、消息玻璃、透明度、动效、纹理，改完立刻生效并自动保存到本地。</p></div>
+      <div class="feat"><h3>跟随系统偏好</h3><p>减少动态效果、减少透明度、增加对比度、强制颜色四种偏好实时生效，解除后回到你上次选的外观。</p></div>
+      <div class="feat"><h3>自动降档</h3><p>2.5 秒内平均帧时间超过 22ms，或逻辑核心 ≤ 4，自动切到均衡档；手动选过质量就不再干预。</p></div>
+      <div class="feat"><h3>纯客户端</h3><p>宿主侧 <code>apply()</code> 空实现，不注册工具、不读文件、不发网络请求，禁用时样式与偏好全部还原。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>安装</h2>
+    <div class="copy">
+      <button type="button" data-copy>复制</button>
+      <pre><code>git clone https://github.com/aivos-xie/dsh-glass-ui.git /tmp/dsh-glass-ui
+dsh plugin --profile web add /tmp/dsh-glass-ui
+
+<span class="c"># 桌面版把 web 换成 desktop</span>
+<span class="c"># 装完刷新页面 → 设置 → Glass UI 玻璃外观</span></code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>设置项</h2>
+    <div class="card" style="padding:6px 6px 2px">
+      <table>
+        <thead><tr><th>项</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td>渲染质量</td><td>完整玻璃 / 均衡 / 静态。均衡降低模糊开销，静态改实色表面并关掉过渡。</td></tr>
+          <tr><td>玻璃强度</td><td>0–100%，默认 60%，同时控制模糊半径和底景光晕。</td></tr>
+          <tr><td>背景色调</td><td>极光 / 清蓝 / 中性，各自跟随深浅主题。</td></tr>
+          <tr><td>消息玻璃</td><td>用户气泡与助手回复的半透明底色。</td></tr>
+          <tr><td>减少透明度</td><td>实色表面，模糊归零，等同系统的减少透明度偏好。</td></tr>
+          <tr><td>极光背景动效 / 细腻纹理</td><td>默认关闭，只在完整档可用。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span>MIT · 截图取自实际运行环境（桌面版 dsh + Glass UI 1.4.1）</span>
+    <span><a href="https://github.com/aivos-xie/dsh-glass-ui">仓库</a> · <a href="https://github.com/aivos-xie/dsh-glass-ui/blob/main/INSTALL.md">安装</a> · <a href="https://github.com/aivos-xie/dsh-glass-ui/issues">反馈</a></span>
+  </footer>
+</div>
+
+<dialog class="lightbox" id="lightbox">
+  <form method="dialog"><button aria-label="关闭">×</button></form>
+  <img alt="" />
+</dialog>
+
+<script>
+  const dialog = document.getElementById('lightbox');
+  const big = dialog.querySelector('img');
+  for (const img of document.querySelectorAll('[data-zoom]')) {
+    img.addEventListener('click', () => {
+      big.src = img.currentSrc || img.src;
+      big.alt = img.alt;
+      dialog.showModal();
+    });
+  }
+  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+
+  const copy = document.querySelector('[data-copy]');
+  copy?.addEventListener('click', async () => {
+    const text = copy.parentElement.querySelector('pre').innerText.replace(/^#.*$/gm, '').trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      copy.textContent = '已复制';
+    } catch {
+      copy.textContent = '复制失败';
+    }
+    setTimeout(() => { copy.textContent = '复制'; }, 1600);
+  });
+</script>
+</body>
+</html>
