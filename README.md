@@ -48,6 +48,9 @@ dsh plugin --profile web add /tmp/dsh-glass-ui
 
 然后刷新 dsh web 页面，打开 **设置 → Glass UI 玻璃外观**。装完不用改 dsh 本身。
 
+也可以走插件市场：在 **插件市场 → 索引源** 里加
+`https://cdn.jsdelivr.net/gh/aivos-xie/dsh-glass-ui@main/market/index.json`，搜 `glass` 直接装（市场安装锚定到仓库里被钉死的提交）。
+
 ## 调整外观
 
 左下角账号菜单 → **设置** → **Glass UI 玻璃外观**（英文界面：Settings → Glass UI）。改动实时生效并自动保存到当前浏览器。

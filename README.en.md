@@ -48,6 +48,9 @@ dsh plugin --profile web add /tmp/dsh-glass-ui
 
 Reload the dsh web page, then open **Settings → Glass UI**. Nothing in dsh itself needs patching.
 
+It is also on the plugin market: add
+`https://cdn.jsdelivr.net/gh/aivos-xie/dsh-glass-ui@main/market/index.json` under **Plugin market → index source** and search for `glass` (market installs are pinned to a commit in this repository).
+
 ## Adjusting the look
 
 Account menu (bottom left) → **Settings** → **Glass UI** (中文界面：设置 → Glass UI 玻璃外观). Changes apply instantly and save to the current browser.

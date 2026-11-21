@@ -19,7 +19,29 @@ ls ~/.dsh/profiles/                 # 至少要有 web（桌面版还会有 desk
 
 ---
 
-## 1. 方式 A：从 GitHub 装进 web profile（推荐）
+## 1. 方式 0：从插件市场安装（最省事）
+
+市场不是中央仓库，而是一份索引 JSON。先让 dsh 认识这个源：
+
+- 界面路径：**插件市场** → 索引源 / Add index → 粘贴
+  `https://cdn.jsdelivr.net/gh/aivos-xie/dsh-glass-ui@main/market/index.json`
+- 或者写进 profile（重启后生效）：在 `~/.dsh/profiles/web/cordis.patch.yml` 末尾加
+
+  ```yaml
+  - id: plugin-market
+    name: "@deepseek-ai/dsh-plugin-market"
+    config:
+      indexes:
+        - https://cdn.jsdelivr.net/gh/aivos-xie/dsh-glass-ui@main/market/index.json
+  ```
+
+然后在市场里搜 `glass`，点安装即可。市场安装的目标是仓库里被钉死的提交（`git+https://github.com/aivos-xie/dsh-glass-ui.git#59f7c01…`），不走 npm，所以不需要发包，也不会被上游改动影响。
+
+装完仍然回到 **设置 → Glass UI 玻璃外观**。
+
+---
+
+## 2. 方式 A：从 GitHub 装进 web profile（推荐）
 
 ```bash
 git clone https://github.com/aivos-xie/dsh-glass-ui.git /tmp/dsh-glass-ui
@@ -62,7 +84,7 @@ dsh --profile web --dump-config | grep -A2 glass-ui
 
 ---
 
-## 2. 方式 B：离线装（已下载源码目录或压缩包）
+## 3. 方式 B：离线装（已下载源码目录或压缩包）
 
 ```bash
 # 有 zip/rar 时先解压出 dsh-glass-ui/ 目录
@@ -75,7 +97,7 @@ dsh plugin --profile web add /绝对路径/dsh-glass-ui
 
 ---
 
-## 3. 方式 C：桌面版（desktop profile）
+## 4. 方式 C：桌面版（desktop profile）
 
 DeepSeek Harness 桌面版用的是 `desktop` 保留 profile，必须先由应用初始化一次（打开过桌面版），再：
 
@@ -87,7 +109,7 @@ dsh plugin --profile desktop add /绝对路径/dsh-glass-ui
 
 ---
 
-## 4. 方式 D：手动放置（不依赖 pnpm）
+## 5. 方式 D：手动放置（不依赖 pnpm）
 
 适合离线机器、pnpm 被墙、或 `dsh plugin` 不可用的情况。以 web profile 为例：
 
@@ -112,7 +134,7 @@ dsh --profile web --dump-config | grep -A2 glass-ui
 
 ---
 
-## 5. 确认装上了
+## 6. 确认装上了
 
 三层验证，从便宜到贵：
 
@@ -132,7 +154,7 @@ __dshGlass.info()
 
 ---
 
-## 6. 使用
+## 7. 使用
 
 设置 → Glass UI 玻璃外观：
 
@@ -152,7 +174,7 @@ __dshGlass.info()
 
 ---
 
-## 7. 停用、卸载、回滚
+## 8. 停用、卸载、回滚
 
 **临时停用**（保留文件与偏好）：把 `dsh.profile.bundles` 里的 `@dsh-desktop/glass-ui` 那行删掉，刷新页面。
 
@@ -188,7 +210,7 @@ cp ~/.dsh/profiles/web/package.json.bak ~/.dsh/profiles/web/package.json
 
 ---
 
-## 8. 故障排查
+## 9. 故障排查
 
 | 现象 | 原因与处理 |
 | --- | --- |
@@ -204,7 +226,7 @@ cp ~/.dsh/profiles/web/package.json.bak ~/.dsh/profiles/web/package.json
 
 ---
 
-## 9. 升级
+## 10. 升级
 
 ```bash
 cd /tmp/dsh-glass-ui && git pull
@@ -216,7 +238,7 @@ dsh plugin --profile web add /tmp/dsh-glass-ui   # 重新链接
 
 ---
 
-## 10. 从源码自己构建
+## 11. 从源码自己构建
 
 ```bash
 node build.mjs                      # 生成 lib/client.js（167 KiB）
