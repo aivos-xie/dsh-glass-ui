@@ -1,0 +1,1717 @@
+/* ============================================================================
+   Glass UI — 玻璃材质层
+   设计原则（按 glass-ui skill）：
+     1. 玻璃 = 材质读法：厚度(高光/内棱) + 折光(边缘亮线) + 层级(亮度阶梯) + 可读性
+     2. 透明 ≠ 模糊 ≠ 折射：只有"前景层"才需要真模糊，背景层用薄膜 + 边框 + 高光就够
+     3. 性能预算：全屏 backdrop-filter 最多 3 块（侧栏/主面板/右栏）+ 输入卡 + 浮层
+        其余卡片一律用"薄膜玻璃"（半透明填充 + 1px 棱线 + 内侧高光），零滤镜
+   ========================================================================== */
+
+/* === 1 变量 ================================================================ */
+
+html[data-glass-ui] {
+  color-scheme: light;
+
+  /* 画布 */
+  --gx-canvas: #b6bcc8;
+  --gx-aurora:
+    radial-gradient(150% 120% at 50% 44%, rgba(10, 16, 30, 0) 50%, rgba(10, 16, 30, 0.18) 100%),
+    radial-gradient(56% 50% at 44% 68%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(40% 38% at 9% -2%, rgba(92, 132, 255, 0.32) 0%, rgba(92, 132, 255, 0) 64%),
+    radial-gradient(36% 38% at 97% 0%, rgba(166, 118, 255, 0.24) 0%, rgba(166, 118, 255, 0) 62%),
+    radial-gradient(42% 40% at 91% 100%, rgba(50, 188, 206, 0.22) 0%, rgba(50, 188, 206, 0) 64%),
+    radial-gradient(34% 34% at 0% 100%, rgba(255, 122, 176, 0.16) 0%, rgba(255, 122, 176, 0) 62%),
+    linear-gradient(170deg, #a6aebd 0%, #c7ccd7 52%, #aab2c0 100%);
+
+  /* 玻璃参数（full 档） */
+  --gx-blur-pane: calc(8px + 20px * var(--gx-strength, .6));
+  --gx-blur-float: calc(15px + 25px * var(--gx-strength, .6));
+  --gx-sat: calc(120% + 80% * var(--gx-strength, .6));
+
+  /* 填充：层级越靠前越亮 */
+  --gx-pane-fill: rgba(255, 255, 255, 0.26);
+  --gx-pane-fill-strong: rgba(255, 255, 255, 0.42);
+  --gx-card-fill: rgba(255, 255, 255, 0.44);
+  --gx-card-fill-soft: rgba(255, 255, 255, 0.3);
+  --gx-seg-fill: rgba(255, 255, 255, 0.22);
+  --gx-tab-active-fill: rgba(255, 255, 255, 0.48);
+  --gx-film-fill: rgba(255, 255, 255, 0.34);
+  --gx-float-fill: rgba(255, 255, 255, 0.62);
+  --gx-well-fill: rgba(58, 78, 120, 0.14);
+
+  /* 薄膜高光：左上打光，右下收边 */
+  --gx-pane-sheen:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 9%),
+    linear-gradient(112deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 26%);
+  --gx-card-sheen:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 62%);
+
+  /* 棱线与高光 */
+  --gx-hairline: rgba(18, 28, 58, 0.32);
+  --gx-hairline-soft: rgba(18, 28, 58, 0.16);
+  --gx-edge-strong: rgba(255, 255, 255, 0.94);
+  --gx-edge-soft: rgba(255, 255, 255, 0.66);
+  --gx-edge-bottom: rgba(22, 33, 66, 0.07);
+  --gx-rim: rgba(255, 255, 255, 0.44);
+  --gx-fringe: rgba(150, 180, 255, 0.32);
+
+  /* 影：近距离接触影 + 远距离环境影 */
+  --gx-shadow-pane:
+    0 0 0 1px rgba(14, 24, 52, 0.18),
+    0 14px 30px -12px rgba(14, 24, 52, 0.42),
+    0 3px 8px -3px rgba(14, 24, 52, 0.24);
+  --gx-shadow-card:
+    0 6px 16px -10px rgba(20, 32, 64, 0.3),
+    0 1px 2px -1px rgba(20, 32, 64, 0.12);
+  --gx-shadow-float:
+    0 22px 48px -20px rgba(20, 32, 64, 0.44),
+    0 4px 10px -4px rgba(20, 32, 64, 0.16);
+
+  --gx-radius-pane: 20px;
+  --gx-radius-card: 14px;
+  --gx-radius-control: 11px;
+
+  --gx-ease: cubic-bezier(0.32, 0.72, 0.3, 1);
+  --gx-fast: 140ms var(--gx-ease);
+}
+
+html[data-glass-ui] body[data-ds-dark-theme] {
+  color-scheme: dark;
+
+  --gx-canvas: #04060c;
+  --gx-aurora:
+    radial-gradient(48% 46% at 14% 4%, rgba(48, 92, 214, 0.55) 0%, rgba(48, 92, 214, 0) 62%),
+    radial-gradient(44% 48% at 94% 0%, rgba(112, 66, 210, 0.45) 0%, rgba(112, 66, 210, 0) 60%),
+    radial-gradient(46% 46% at 86% 97%, rgba(20, 150, 170, 0.38) 0%, rgba(20, 150, 170, 0) 62%),
+    radial-gradient(44% 44% at 0% 98%, rgba(180, 58, 126, 0.3) 0%, rgba(180, 58, 126, 0) 60%),
+    linear-gradient(168deg, #05070e 0%, #080d18 52%, #05070f 100%);
+
+  --gx-pane-fill: rgba(26, 34, 55, 0.46);
+  --gx-pane-fill-strong: rgba(34, 43, 68, 0.62);
+  --gx-card-fill: rgba(46, 57, 86, 0.44);
+  --gx-card-fill-soft: rgba(40, 50, 76, 0.3);
+  --gx-float-fill: rgba(26, 33, 52, 0.72);
+  --gx-well-fill: rgba(6, 10, 20, 0.42);
+  --gx-seg-fill: rgba(255, 255, 255, 0.05);
+  --gx-tab-active-fill: rgba(255, 255, 255, 0.10);
+  --gx-film-fill: rgba(255, 255, 255, 0.06);
+
+  --gx-pane-sheen:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 10%),
+    linear-gradient(112deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 28%);
+  --gx-card-sheen:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 64%);
+
+  --gx-hairline: rgba(255, 255, 255, 0.2);
+  --gx-hairline-soft: rgba(255, 255, 255, 0.1);
+  --gx-edge-strong: rgba(255, 255, 255, 0.22);
+  --gx-edge-soft: rgba(255, 255, 255, 0.13);
+  --gx-edge-bottom: rgba(0, 0, 0, 0.4);
+  --gx-rim: rgba(255, 255, 255, 0.07);
+  --gx-fringe: rgba(120, 160, 255, 0.22);
+
+  --gx-shadow-pane:
+    0 22px 48px -20px rgba(0, 0, 0, 0.78),
+    0 2px 8px -2px rgba(0, 0, 0, 0.5);
+  --gx-shadow-card:
+    0 8px 20px -12px rgba(0, 0, 0, 0.6),
+    0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --gx-shadow-float:
+    0 28px 60px -22px rgba(0, 0, 0, 0.82),
+    0 4px 12px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* === 2 画布 =============================================================== */
+
+html[data-glass-ui][data-glass-tone='cool'] body {
+  --gx-canvas: #bdcddd;
+  --gx-aurora:
+    radial-gradient(62% 66% at 12% 2%, rgb(70 140 238 / .32), transparent 80%),
+    radial-gradient(66% 62% at 95% 98%, rgb(47 187 173 / .30), transparent 86%),
+    linear-gradient(160deg, #aebfd5, #d9e4ec 56%, #a5c6d0);
+}
+html[data-glass-ui][data-glass-tone='cool'] body[data-ds-dark-theme] {
+  --gx-canvas: #080f19;
+  --gx-aurora:
+    radial-gradient(62% 66% at 12% 2%, rgb(35 99 183 / .51), transparent 79%),
+    radial-gradient(66% 62% at 95% 98%, rgb(16 143 137 / .34), transparent 84%),
+    linear-gradient(160deg, #091323, #0b1825 56%, #081521);
+}
+html[data-glass-ui][data-glass-tone='neutral'] body {
+  --gx-canvas: #c5c9d0;
+  --gx-aurora:
+    radial-gradient(75% 70% at 52% 35%, rgb(255 255 255 / .50), transparent 86%),
+    linear-gradient(160deg, #bac1cc, #dadde1 57%, #b2b8c3);
+}
+html[data-glass-ui][data-glass-tone='neutral'] body[data-ds-dark-theme] {
+  --gx-canvas: #11141c;
+  --gx-aurora:
+    radial-gradient(76% 71% at 48% 42%, rgb(82 91 112 / .30), transparent 86%),
+    linear-gradient(160deg, #131820, #10151c 57%, #181c26);
+}
+
+html[data-glass-ui] body {
+  background-color: var(--gx-canvas) !important;
+  background-image: var(--gx-aurora) !important;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* 低层极光只在开启动效时存在：默认不叠第二层全屏合成 */
+html[data-glass-ui] body::before {
+  content: '';
+  display: none;
+  position: fixed;
+  inset: -12%;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--gx-aurora);
+  background-size: cover;
+  opacity: 0.55;
+  transform: translate3d(0, 0, 0) scale(1.02);
+}
+
+/* 极光缓动是显式开关：只有用户要"活的背景"时才开，默认静止以保证滚动零重算 */
+html[data-glass-ui][data-glass-motion='on'] body::before {
+  display: block;
+  animation: gx-aurora 52s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes gx-aurora {
+  0% { transform: translate3d(-1.4%, -1%, 0) scale(1.04); }
+  100% { transform: translate3d(1.6%, 1.2%, 0) scale(1.1); }
+}
+
+/* 颗粒：显式开启的叠加层（全屏 blend 有代价，默认不开） */
+html[data-glass-ui][data-glass-texture='on'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+html[data-glass-ui] #root {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+}
+
+html[data-glass-ui] ::selection {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 34%, transparent);
+}
+
+/* === 3 结构：三块玻璃板 =================================================== */
+
+/* 外壳：透明，让极光透出来；列间距就是玻璃板之间的缝 */
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol']) {
+  background: transparent !important;
+  column-gap: 10px;
+  /* 只改左右下内边距：padding-top 是 Windows 标题栏留白，必须保留 */
+  padding-right: 8px;
+  padding-bottom: 10px;
+  padding-left: 8px;
+  box-sizing: border-box;
+}
+
+/* Windows 标题栏拖拽带 */
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--gx-pane-fill-strong) 82%, transparent) 0%,
+    rgba(255, 255, 255, 0) 100%
+  ) !important;
+  border-bottom: 1px solid var(--gx-hairline-soft);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  backdrop-filter: blur(8px) saturate(1.2);
+}
+
+html[data-glass-ui] [class*='sidebarCol'],
+html[data-glass-ui] [class*='centerCol'],
+html[data-glass-ui] [class*='rightbarCol'] {
+  position: relative;
+  z-index: 1;
+  border: 1px solid transparent !important;
+  border-radius: var(--gx-radius-pane);
+  background-color: var(--gx-pane-fill);
+  background-image: var(--gx-pane-sheen);
+  -webkit-backdrop-filter: blur(var(--gx-blur-pane)) saturate(var(--gx-sat));
+  backdrop-filter: blur(var(--gx-blur-pane)) saturate(var(--gx-sat));
+  box-shadow:
+    var(--gx-shadow-pane),
+    inset 0 1px 0 var(--gx-edge-strong),
+    inset 0 0 0 1px var(--gx-rim),
+    inset 0 22px 34px -26px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 0 -1px var(--gx-fringe),
+    inset 0 -1px 0 var(--gx-edge-bottom);
+  overflow: hidden;
+}
+
+/* 主面板最亮：它是"最前面的一层玻璃" */
+html[data-glass-ui] [class*='centerCol'] {
+  background-color: var(--gx-pane-fill-strong);
+  -webkit-backdrop-filter: blur(var(--gx-blur-pane)) saturate(1.72);
+  backdrop-filter: blur(var(--gx-blur-pane)) saturate(1.72);
+}
+
+/* 每块板都是独立玻璃片：同一圆角，同一棱线，层级靠填充区分 */
+html[data-glass-ui] [class*='sidebarCol'],
+html[data-glass-ui] [class*='centerCol'],
+html[data-glass-ui] [class*='rightbarCol'] {
+  border-radius: var(--gx-radius-pane);
+}
+
+/* 折叠态：窄条也是玻璃 */
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])[data-sidebar-collapsed] [class*='sidebarCol'] {
+  border-radius: var(--gx-radius-pane);
+}
+
+/* 抽屉态：浮起来的独立玻璃板
+   注意：原生是 grid-area:auto + position:absolute + inset:0 auto 0 0，
+   宽度靠收缩；这里显式给宽高，否则窄窗下会被压成 0 宽（点了像没打开）。*/
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])[data-sidebar-drawer] [class*='sidebarCol'] {
+  position: absolute;
+  border-radius: var(--gx-radius-pane);
+}
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])[data-sidebar-drawer]:not([data-sidebar-collapsed]) [class*='sidebarCol'] {
+  top: calc(var(--dsh-frame-chrome-top, 0px) + 8px);
+  bottom: 8px;
+  left: 8px;
+  right: auto;
+  width: min(320px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  z-index: 72;
+  visibility: visible;
+  box-shadow:
+    var(--gx-shadow-float),
+    inset 0 1px 0 var(--gx-edge-strong),
+    inset 0 0 0 1px var(--gx-rim);
+}
+
+/* Shell controls clear the Windows caption; the native drawer keeps them inert. */
+html[data-glass-ui] [data-shell-leading] {
+  top: calc(var(--dsh-frame-chrome-top, 0px) + 11px);
+  z-index: 15;
+  -webkit-app-region: no-drag;
+}
+
+/* A closed right track deliberately lets its panel hang over the centre. */
+html[data-glass-ui] [class*='rightbarCol'] {
+  overflow: visible;
+}
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])[data-rightbar-collapsed] > [class*='rightbarCol'] {
+  border: 0 !important;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Windows caption buttons are fixed descendants of the sidebar. A backdrop
+   filter would make this column their containing block and collapse them into
+   a zero-width clip when the sidebar closes. Keep this surface a thin film. */
+html[data-glass-ui][data-windows-titlebar] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol']):not([data-sidebar-drawer]) > [class*='sidebarCol'] {
+  overflow: visible;
+  z-index: auto;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* The collapsed pinned track becomes zero width. Keep its fixed controls
+   available while clearing the border and shadow of the remaining sliver. */
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])[data-sidebar-collapsed]:not([data-sidebar-drawer]) > [class*='sidebarCol'] {
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-glass-ui] [class*='drawerMask'] {
+  background: rgba(12, 18, 34, 0.32) !important;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+/* 拖拽条：玻璃棱，不抢视觉 */
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol']) [class*='handle'][data-side] {
+  z-index: 4;
+}
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol']) [class*='handle'][data-side]::after {
+  content: '';
+  position: absolute;
+  inset: 18% 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.08));
+  opacity: 0;
+  transition: opacity var(--gx-fast);
+}
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol']) [class*='handle'][data-side]:hover::after {
+  opacity: 1;
+}
+
+/* 面板内容一律透明，避免二次上色破坏玻璃层 */
+html[data-glass-ui] [class*='mainPanel'] > div,
+html[data-glass-ui] [class*='centerCol'] > div > div {
+  background-color: transparent !important;
+}
+
+/* === 4 侧栏 =============================================================== */
+
+/* SidebarRoot sits inside a display:contents slot. Give the rounded column
+   ownership of the surface so the inner rectangular fill cannot show at the
+   corners. Leave the Windows caption controls outside any clipping context. */
+html[data-glass-ui] [class*='sidebarCol'] > [data-slot='sidebar'] > :is([class$='_root'], [class*='_root ']),
+html[data-glass-ui] [class*='sidebarCol'] > div:not([data-slot]) {
+  background: transparent !important;
+}
+
+/* 品牌区 */
+html[data-glass-ui] [class*='brandMark'] {
+  border-radius: 10px;
+  box-shadow:
+    0 2px 6px -2px rgba(20, 32, 64, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+html[data-glass-ui] [class*='brandName'] {
+  letter-spacing: 0.02em;
+}
+
+/* 新建会话：凸起的玻璃胶囊 */
+html[data-glass-ui] button[class$='_newSession'] {
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: 14px;
+  background-color: var(--gx-card-fill);
+  background-image: var(--gx-card-sheen);
+  box-shadow:
+    var(--gx-shadow-card),
+    inset 0 1px 0 var(--gx-edge-strong);
+  transition:
+    transform var(--gx-fast),
+    box-shadow var(--gx-fast),
+    background-color var(--gx-fast);
+}
+html[data-glass-ui] button[class$='_newSession']:hover {
+  transform: translateY(-1px);
+  background-color: color-mix(in srgb, var(--gx-card-fill) 70%, #fff 30%);
+  box-shadow:
+    0 10px 22px -12px rgba(20, 32, 64, 0.42),
+    inset 0 1px 0 var(--gx-edge-strong);
+}
+html[data-glass-ui] button[class$='_newSession']:active {
+  transform: translateY(0) scale(0.995);
+}
+
+/* 列表行：玻璃薄片，hover 抬 1px + 亮一档 */
+html[data-glass-ui] [class*='panelRow'],
+html[data-glass-ui] [class*='sessionRow'],
+html[data-glass-ui] [class*='projectRow'],
+html[data-glass-ui] [class*='panelEntry'] {
+  border-radius: 11px;
+  border: 1px solid transparent;
+  transition:
+    background-color var(--gx-fast),
+    border-color var(--gx-fast),
+    transform var(--gx-fast),
+    box-shadow var(--gx-fast);
+}
+html[data-glass-ui] [class*='panelRow']:hover,
+html[data-glass-ui] [class*='sessionRow']:hover,
+html[data-glass-ui] [class*='projectRow']:hover {
+  background-color: rgba(255, 255, 255, 0.34);
+  border-color: var(--gx-hairline-soft);
+  box-shadow: inset 0 1px 0 var(--gx-edge-soft);
+  transform: translateX(1px);
+}
+html[data-glass-ui] body[data-ds-dark-theme] [class*='panelRow']:hover,
+html[data-glass-ui] body[data-ds-dark-theme] [class*='sessionRow']:hover,
+html[data-glass-ui] body[data-ds-dark-theme] [class*='projectRow']:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 选中项：品牌色薄膜 + 左侧光条 */
+html[data-glass-ui] [class*='sessionRow'][data-active='true'],
+html[data-glass-ui] [class*='sessionRow'][aria-current='true'],
+html[data-glass-ui] [class*='panelRow'][data-active='true'],
+html[data-glass-ui] [class*='panelRow'][aria-current='true'] {
+  background-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, rgba(255, 255, 255, 0.28));
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 26%, var(--gx-hairline-soft));
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--dsw-alias-brand-primary) 70%, transparent),
+    inset 0 1px 0 var(--gx-edge-soft);
+}
+
+/* 滚动渐隐与侧栏底色一致 */
+html[data-glass-ui] [class*='scrollFade'] {
+  background: linear-gradient(transparent, color-mix(in srgb, var(--gx-pane-fill) 60%, transparent)) !important;
+}
+
+/* === 5 会话头 / 视图胶囊 ================================================== */
+
+html[data-glass-ui] [class*='conversation'] [class*='header'] {
+  border-bottom: 1px solid var(--gx-hairline-soft) !important;
+  background: transparent !important;
+}
+
+/* 视图切换：共享胶囊容器 + 滑动高亮 */
+html[data-glass-ui] [class*='viewTabs'] {
+  gap: 3px !important;
+  width: fit-content;
+  padding: 3px;
+  border-radius: 12px;
+  background-color: var(--gx-seg-fill);
+  border: 1px solid var(--gx-hairline-soft);
+  box-shadow: inset 0 1px 2px rgba(16, 26, 52, 0.06);
+}
+html[data-glass-ui] [class*='viewTabs'] > [class*='tab'] {
+  padding: 6px 13px !important;
+  border-radius: 9px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-secondary) !important;
+  background-color: transparent;
+  transition:
+    background-color var(--gx-fast),
+    color var(--gx-fast),
+    box-shadow var(--gx-fast);
+}
+/* 关掉原生的 2px 下划线：选中态改由胶囊承载 */
+html[data-glass-ui] [class*='viewTabs'] > [class*='tab']::after {
+  display: none !important;
+}
+html[data-glass-ui] [class*='viewTabs'] > [class*='tab']:hover {
+  color: var(--dsw-alias-label-primary) !important;
+  background-color: var(--gx-film-fill);
+}
+html[data-glass-ui] [class*='viewTabs'] > [class*='tabActive'] {
+  color: var(--dsw-alias-brand-primary) !important;
+  background-color: var(--gx-tab-active-fill);
+  box-shadow:
+    0 1px 2px -1px rgba(16, 26, 52, 0.22),
+    inset 0 1px 0 var(--gx-edge-strong);
+}
+html[data-glass-ui] body[data-ds-dark-theme] [class*='viewTabs'] > [class*='tabActive'] {
+  color: var(--dsw-alias-brand-primary) !important;
+  background-color: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 1px 2px -1px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 var(--gx-edge-soft);
+}
+
+/* 圆形图标按钮：玻璃珠 */
+html[data-glass-ui] [class*='iconButton'],
+html[data-glass-ui] [class*='headerMenuButton'] {
+  border-radius: 10px;
+  transition:
+    background-color var(--gx-fast),
+    box-shadow var(--gx-fast),
+    transform var(--gx-fast);
+}
+html[data-glass-ui] [class*='iconButton']:hover,
+html[data-glass-ui] [class*='headerMenuButton']:hover {
+  background-color: var(--gx-film-fill);
+  box-shadow: inset 0 1px 0 var(--gx-edge-strong);
+}
+html[data-glass-ui] [class*='iconButton']:active,
+html[data-glass-ui] [class*='headerMenuButton']:active {
+  transform: scale(0.94);
+}
+
+/* === 6 消息流（薄膜玻璃，零滤镜） ========================================= */
+
+html[data-glass-ui] [class*='chat'][class*='scroller'],
+html[data-glass-ui] [class*='chat'][class*='root'] {
+  background: transparent !important;
+}
+
+/* 用户气泡：品牌色薄膜 */
+html[data-glass-ui] [class*='bubble'] {
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, var(--gx-hairline-soft));
+  background-image: var(--gx-card-sheen);
+  box-shadow:
+    0 6px 16px -10px rgba(20, 32, 64, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* 思考 / 推理块：内凹玻璃，压暗一档 */
+html[data-glass-ui] [class*='thinkingBody'],
+html[data-glass-ui] [class*='thinkBody'],
+html[data-glass-ui] [class*='reasoning'] {
+  border-radius: 12px;
+  border: 1px solid var(--gx-hairline-soft);
+  background-color: var(--gx-well-fill);
+  box-shadow: inset 0 1px 3px rgba(20, 32, 64, 0.06);
+}
+
+/* 分割线 */
+html[data-glass-ui] [class*='separator'] {
+  background-color: var(--gx-hairline-soft) !important;
+}
+
+/* === 7 工具调用 / 代码 / 终端 ============================================= */
+
+/* 工具调用：可点的薄膜玻璃条 */
+html[data-glass-ui] [class*='callRow'] {
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition:
+    background-color var(--gx-fast),
+    border-color var(--gx-fast),
+    transform var(--gx-fast),
+    box-shadow var(--gx-fast);
+}
+html[data-glass-ui] [class*='callRow']:hover {
+  background-color: var(--gx-card-fill-soft);
+  border-color: var(--gx-hairline-soft);
+  box-shadow:
+    inset 0 1px 0 var(--gx-edge-soft),
+    0 6px 16px -12px rgba(20, 32, 64, 0.34);
+  transform: translateY(-1px);
+}
+
+/* IO 面板 / 终端：内凹玻璃槽 */
+html[data-glass-ui] [class*='ioCard'],
+html[data-glass-ui] [class*='terminal'] {
+  border-radius: 12px !important;
+  border: 1px solid var(--gx-hairline-soft);
+  background-color: var(--gx-well-fill);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 46%);
+  box-shadow:
+    inset 0 1px 2px rgba(20, 32, 64, 0.1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.35);
+}
+html[data-glass-ui] [class*='terminalBody'],
+html[data-glass-ui] [class*='ioText'] {
+  background: transparent !important;
+}
+
+/* 代码块：更深的内凹槽 + 顶部亮线 */
+html[data-glass-ui] pre {
+  border-radius: 12px;
+  border: 1px solid var(--gx-hairline-soft);
+  background-color: color-mix(in srgb, var(--gx-well-fill) 82%, rgba(10, 16, 30, 0.1)) !important;
+  box-shadow:
+    inset 0 1px 2px rgba(20, 32, 64, 0.1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+}
+html[data-glass-ui] :not(pre) > code {
+  border-radius: 7px;
+  padding: 0.1em 0.36em;
+  background-color: var(--gx-well-fill);
+  border: 1px solid var(--gx-hairline-soft);
+}
+
+/* 文件卡 / 附件 */
+html[data-glass-ui] [class*='fileCard'],
+html[data-glass-ui] [class*='attachment'] {
+  border-radius: 12px;
+  border: 1px solid var(--gx-hairline-soft);
+  background-color: var(--gx-card-fill-soft);
+  box-shadow: inset 0 1px 0 var(--gx-edge-soft);
+}
+
+/* 表格 */
+html[data-glass-ui] table {
+  border-radius: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid var(--gx-hairline-soft);
+}
+html[data-glass-ui] th {
+  background-color: var(--gx-card-fill-soft);
+  box-shadow: inset 0 1px 0 var(--gx-edge-soft);
+}
+html[data-glass-ui] td,
+html[data-glass-ui] th {
+  border-bottom: 1px solid var(--gx-hairline-soft);
+}
+html[data-glass-ui] tr:last-child td {
+  border-bottom: none;
+}
+
+/* === 8 输入区（前景玻璃，唯一需要强模糊的卡片） =========================== */
+
+html[data-glass-ui] [class*='composerSeat'] [class*='_card'] {
+  border: 1px solid var(--gx-hairline) !important;
+  border-radius: 22px !important;
+  background-color: color-mix(in srgb, var(--gx-float-fill) 90%, var(--dsw-alias-brand-primary) 7%) !important;
+  background-image: var(--gx-card-sheen);
+  -webkit-backdrop-filter: blur(var(--gx-blur-float)) saturate(1.7);
+  backdrop-filter: blur(var(--gx-blur-float)) saturate(1.7);
+  box-shadow:
+    0 0 0 1px rgba(14, 24, 52, 0.14),
+    0 26px 52px -26px rgba(14, 24, 52, 0.5),
+    0 6px 14px -8px rgba(14, 24, 52, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    inset 0 0 0 1px var(--gx-rim),
+    inset 0 -1px 0 var(--gx-edge-bottom);
+  transition:
+    box-shadow var(--gx-fast),
+    border-color var(--gx-fast);
+}
+html[data-glass-ui] [class*='composerSeat'] [class*='_card']:focus-within {
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 42%, var(--gx-hairline)) !important;
+  box-shadow:
+    var(--gx-shadow-float),
+    0 0 0 3px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent),
+    inset 0 1px 0 var(--gx-edge-strong);
+}
+
+html[data-glass-ui] [class*='composerSeat'] [class*='notice'] {
+  border-radius: 12px;
+  background-color: var(--gx-well-fill) !important;
+  border: 1px solid var(--gx-hairline-soft);
+}
+
+/* 模型选择器 / 胶囊 chip */
+html[data-glass-ui] [class*='composerSeat'] [class*='trigger'],
+html[data-glass-ui] [class*='chip'] {
+  border-radius: 999px;
+  border: 1px solid var(--gx-hairline-soft);
+  background-color: var(--gx-card-fill-soft);
+  box-shadow: inset 0 1px 0 var(--gx-edge-soft);
+  transition:
+    background-color var(--gx-fast),
+    box-shadow var(--gx-fast);
+}
+html[data-glass-ui] [class*='composerSeat'] [class*='trigger']:hover,
+html[data-glass-ui] [class*='chip']:hover {
+  background-color: var(--gx-card-fill);
+}
+
+/* === 9 浮层：菜单 / 对话框 / 提示 ========================================= */
+
+html[data-glass-ui] [role='menu'],
+html[data-glass-ui] [role='listbox'],
+html[data-glass-ui] [role='dialog'],
+html[data-glass-ui] [role='alertdialog'] {
+  border: 1px solid var(--gx-hairline) !important;
+  border-radius: 16px !important;
+  background-color: var(--gx-float-fill) !important;
+  background-image: var(--gx-card-sheen);
+  -webkit-backdrop-filter: blur(var(--gx-blur-float)) saturate(1.7);
+  backdrop-filter: blur(var(--gx-blur-float)) saturate(1.7);
+  box-shadow:
+    var(--gx-shadow-float),
+    inset 0 1px 0 var(--gx-edge-strong),
+    inset 0 0 0 1px var(--gx-rim);
+  animation: gx-pop 140ms var(--gx-ease);
+}
+
+html[data-glass-ui] [role='menu'] {
+  padding: 5px !important;
+}
+
+html[data-glass-ui] [role='menuitem'],
+html[data-glass-ui] [role='option'] {
+  border-radius: 9px;
+  transition: background-color var(--gx-fast);
+}
+html[data-glass-ui] [role='menuitem']:hover,
+html[data-glass-ui] [role='option']:hover,
+html[data-glass-ui] [role='option'][aria-selected='true'] {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Nested menu/listbox content shares its outer surface instead of blurring twice. */
+html[data-glass-ui] :is([role='menu'], [role='listbox']) :is([role='menu'], [role='listbox']) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  animation: none;
+}
+html[data-glass-ui] body[data-ds-dark-theme] [role='menuitem']:hover,
+html[data-glass-ui] body[data-ds-dark-theme] [role='option']:hover,
+html[data-glass-ui] body[data-ds-dark-theme] [role='option'][aria-selected='true'] {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-glass-ui] [role='tooltip'] {
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: 10px;
+  color: var(--dsw-alias-tooltip-label, #f7f9ff);
+  background-color: var(--dsw-alias-tooltip-bg, #151b2d) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+  box-shadow: var(--gx-shadow-card), inset 0 1px 0 var(--gx-edge-soft);
+}
+
+html[data-glass-ui] [class*='_toast'] {
+  border-radius: 12px !important;
+  border: 1px solid var(--gx-hairline-soft);
+  color: var(--dsw-alias-toast-label, #f7f9ff);
+  background-color: var(--dsw-alias-toast-bg, #151b2d) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: var(--gx-shadow-float), inset 0 1px 0 var(--gx-edge-soft);
+}
+
+@keyframes gx-pop {
+  from { opacity: 0; transform: translateY(-3px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === 10 控件统一 ========================================================== */
+
+html[data-glass-ui] button,
+html[data-glass-ui] [role='button'] {
+  border-radius: var(--gx-radius-control);
+}
+
+html[data-glass-ui] input,
+html[data-glass-ui] textarea,
+html[data-glass-ui] [role='combobox'] {
+  border-radius: var(--gx-radius-control);
+  transition:
+    border-color var(--gx-fast),
+    box-shadow var(--gx-fast),
+    background-color var(--gx-fast);
+}
+
+html[data-glass-ui] :is(input, textarea, [role='combobox']):focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 46%, var(--gx-hairline));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent);
+}
+
+/* 徽标 / 状态点 */
+html[data-glass-ui] [class*='badge'] {
+  border-radius: 999px;
+  border: 1px solid var(--gx-hairline-soft);
+  background-color: var(--gx-card-fill-soft);
+}
+
+html[data-glass-ui] [class*='statusTag'] {
+  border-radius: 999px;
+  border: 1px solid var(--gx-hairline-soft);
+}
+
+/* 滚动条：细玻璃条 */
+html[data-glass-ui] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+html[data-glass-ui] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+html[data-glass-ui] ::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: rgba(22, 33, 66, 0.22);
+}
+html[data-glass-ui] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(22, 33, 66, 0.34);
+}
+html[data-glass-ui] body[data-ds-dark-theme] ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+html[data-glass-ui] body[data-ds-dark-theme] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* === 11 设置 / 插件页 ===================================================== */
+
+html[data-glass-ui] [class*='navCell'] {
+  border-radius: 11px;
+  border: 1px solid transparent;
+  transition:
+    background-color var(--gx-fast),
+    border-color var(--gx-fast);
+}
+html[data-glass-ui] [class*='navCell']:hover {
+  background-color: var(--gx-card-fill-soft);
+  border-color: var(--gx-hairline-soft);
+}
+html[data-glass-ui] [class*='navCell'][data-active='true'],
+html[data-glass-ui] [class*='navCell'][aria-current='true'] {
+  background-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 13%, rgba(255, 255, 255, 0.26));
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 24%, var(--gx-hairline-soft));
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--dsw-alias-brand-primary) 70%, transparent);
+}
+
+html[data-glass-ui] [class*='settings'] [class*='section'],
+html[data-glass-ui] [class*='plugin'] [class*='card']:not([class*='cardHead']):not([class*='cardTitle']) {
+  border-radius: var(--gx-radius-card) !important;
+  border: 1px solid var(--gx-hairline-soft) !important;
+  background-color: var(--gx-card-fill-soft) !important;
+  background-image: var(--gx-card-sheen);
+  box-shadow:
+    var(--gx-shadow-card),
+    inset 0 1px 0 var(--gx-edge-soft);
+}
+
+/* === 12 设置：原生表单保持键盘操作与宿主保存行为 ======================== */
+
+html[data-glass-ui] [data-glass-settings] {
+  --gx-settings-control-line: color-mix(in srgb, var(--dsw-alias-label-secondary) 76%, transparent);
+  --gx-settings-thumb: #f4f7ff;
+  --gx-settings-thumb-line: #68758d;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding: clamp(15px, 3vw, 24px);
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: var(--gx-radius-card);
+  background-color: var(--gx-card-fill-soft);
+  background-image: var(--gx-card-sheen);
+  color: var(--dsw-alias-label-primary);
+  box-shadow: var(--gx-shadow-card), inset 0 1px 0 var(--gx-edge-soft);
+}
+html[data-glass-ui] [data-glass-settings] :is(h2, p) { margin: 0; }
+html[data-glass-ui] .gx-settings-header {
+  display: grid;
+  gap: 5px;
+  padding: 14px 15px;
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: var(--gx-radius-control);
+  background: var(--gx-card-fill);
+}
+html[data-glass-ui]:not([data-glass-quality='static']) .gx-settings-header {
+  background-image: linear-gradient(115deg, rgb(var(--gx-chat-light) / var(--gx-chat-light-alpha)), transparent 90%);
+  box-shadow: inset 0 1px 0 var(--gx-edge-strong);
+}
+html[data-glass-ui] .gx-settings-title { font-size: 18px; font-weight: 650; line-height: 1.4; }
+html[data-glass-ui] .gx-settings-description {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+html[data-glass-ui] .gx-settings-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+html[data-glass-ui] .gx-settings-fieldset legend,
+html[data-glass-ui] .gx-settings-range > label {
+  font-size: 13px;
+  font-weight: 600;
+}
+html[data-glass-ui] .gx-settings-fieldset legend { padding: 0 0 9px; }
+html[data-glass-ui] .gx-settings-options { display: flex; flex-wrap: wrap; gap: 8px; }
+html[data-glass-ui] .gx-settings-option { position: relative; display: inline-flex; align-items: center; }
+html[data-glass-ui] .gx-settings-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+html[data-glass-ui] .gx-settings-option > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: 10px;
+  background: var(--gx-seg-fill);
+  cursor: pointer;
+  font-size: 13px;
+}
+html[data-glass-ui] .gx-settings-option > span::after {
+  content: '\2713';
+  visibility: hidden;
+}
+html[data-glass-ui] .gx-settings-option:hover > span,
+html[data-glass-ui] .gx-settings-reset:hover { background-color: var(--gx-tab-active-fill); }
+html[data-glass-ui] .gx-settings-option input:checked + span {
+  border-color: var(--dsw-alias-brand-primary);
+  background: var(--gx-tab-active-fill);
+  box-shadow: inset 0 1px 0 var(--gx-edge-strong);
+}
+html[data-glass-ui] .gx-settings-option input:checked + span::after { visibility: visible; }
+html[data-glass-ui] .gx-settings-option input:focus-visible + span,
+html[data-glass-ui] .gx-settings :is(input[type='range'], input[type='checkbox'], .gx-settings-reset):focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 3px;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: var(--gx-radius-card);
+  background-color: var(--gx-card-fill-soft);
+  background-image: var(--gx-card-sheen);
+  box-shadow: inset 0 1px var(--gx-edge-soft);
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-range > label { overflow-wrap: anywhere; }
+html[data-glass-ui] [data-glass-settings] .gx-settings-range input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  accent-color: var(--dsw-alias-brand-primary);
+  cursor: pointer;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-range p { grid-column: 1 / -1; }
+html[data-glass-ui] [data-glass-settings] .gx-settings-value {
+  min-width: 5ch;
+  padding: 2px 8px;
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: 999px;
+  background: var(--gx-seg-fill);
+  color: var(--dsw-alias-brand-text);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-toggles {
+  padding: 0 13px;
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: var(--gx-radius-card);
+  background-color: var(--gx-seg-fill);
+  background-image: var(--gx-card-sheen);
+  box-shadow: inset 0 1px var(--gx-edge-soft);
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  gap: 12px;
+  min-height: 44px;
+  padding: 7px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-toggle + .gx-settings-toggle {
+  border-block-start: 1px solid var(--gx-hairline-soft);
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-toggle-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-toggle input[type='checkbox'] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+  cursor: pointer;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-toggle input[type='checkbox']:disabled,
+html[data-glass-ui] [data-glass-settings] .gx-settings-range input[type='range']:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+/* The checkbox stays the focusable, clickable control. Its thumb moves along
+   the logical inline axis, with the native control in forced colors. */
+@media (forced-colors: none) {
+  html[data-glass-ui]:not([data-glass-forced-colors='on']) [data-glass-settings] .gx-settings-toggle input[type='checkbox'] {
+    appearance: none;
+    display: grid;
+    align-items: center;
+    box-sizing: border-box;
+    width: 40px;
+    height: 24px;
+    padding: 2px;
+    border: 1px solid var(--gx-settings-control-line);
+    border-radius: 999px;
+    background-color: var(--gx-well-fill);
+    background-image: var(--gx-card-sheen);
+    box-shadow: inset 0 1px var(--gx-edge-soft), inset 0 -1px var(--gx-edge-bottom);
+    transition: background-color var(--gx-fast), border-color var(--gx-fast);
+  }
+  html[data-glass-ui]:not([data-glass-forced-colors='on']) [data-glass-settings] .gx-settings-toggle input[type='checkbox']::before {
+    content: '';
+    inline-size: 18px;
+    block-size: 18px;
+    box-sizing: border-box;
+    margin-inline-start: 0;
+    border: 1px solid var(--gx-settings-thumb-line);
+    border-radius: 50%;
+    background: var(--gx-settings-thumb);
+    box-shadow: var(--gx-shadow-card);
+    transition: margin-inline-start var(--gx-fast);
+  }
+  html[data-glass-ui]:not([data-glass-forced-colors='on']) [data-glass-settings] .gx-settings-toggle input[type='checkbox']:checked {
+    background-color: var(--dsw-alias-brand-primary);
+  }
+  html[data-glass-ui]:not([data-glass-forced-colors='on']) [data-glass-settings] .gx-settings-toggle input[type='checkbox']:checked::before {
+    margin-inline-start: 16px;
+  }
+}
+
+/* The requested slider value stays visible in all quality modes, including
+   static. If typed attr() is unavailable the native slider paints its fill. */
+@supports (width: attr(aria-valuetext type(<percentage>), 0%)) and selector(input::-webkit-slider-runnable-track) {
+  @media (forced-colors: none) {
+    html[data-glass-ui]:not([data-glass-forced-colors='on']) [data-glass-settings] [data-glass-intensity] {
+      appearance: none;
+      --gx-settings-range-direction: to right;
+      --gx-settings-range-value: attr(aria-valuetext type(<percentage>), 0%);
+    }
+    html[data-glass-ui] [data-glass-settings] [data-glass-intensity]:dir(rtl) {
+      --gx-settings-range-direction: to left;
+    }
+    html[data-glass-ui]:not([data-glass-forced-colors='on']) [data-glass-settings] [data-glass-intensity]::-webkit-slider-runnable-track {
+      box-sizing: border-box;
+      height: 7px;
+      border: 1px solid var(--gx-settings-control-line);
+      border-radius: 999px;
+      background: linear-gradient(var(--gx-settings-range-direction), var(--dsw-alias-brand-primary) var(--gx-settings-range-value), var(--gx-well-fill) 0);
+      box-shadow: inset 0 1px var(--gx-edge-soft);
+    }
+    html[data-glass-ui]:not([data-glass-forced-colors='on']) [data-glass-settings] [data-glass-intensity]::-webkit-slider-thumb {
+      appearance: none;
+      box-sizing: border-box;
+      width: 18px;
+      height: 18px;
+      margin-top: -6.5px;
+      border: 1px solid var(--gx-settings-thumb-line);
+      border-radius: 50%;
+      background: var(--gx-settings-thumb);
+      box-shadow: var(--gx-shadow-card);
+    }
+  }
+}
+
+html[data-glass-ui] [data-glass-settings] .gx-settings-status {
+  position: relative;
+  margin-top: -8px;
+  padding: 7px 10px;
+  padding-inline-start: 24px;
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: 10px;
+  background: var(--gx-seg-fill);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-status::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 13px;
+  inset-inline-start: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dsw-alias-brand-text);
+  pointer-events: none;
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding-block-start: 11px;
+  border-block-start: 1px solid var(--gx-hairline-soft);
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-reset {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: var(--gx-radius-control);
+  color: var(--dsw-alias-label-primary);
+  background-color: var(--gx-card-fill);
+  background-image: var(--gx-card-sheen);
+  box-shadow: var(--gx-shadow-card), inset 0 1px var(--gx-edge-strong);
+  cursor: pointer;
+  transition: background-color var(--gx-fast), border-color var(--gx-fast);
+}
+@media (hover: hover) {
+  html[data-glass-ui] [data-glass-settings] .gx-settings-reset:hover:not(:disabled) {
+    background-color: var(--gx-tab-active-fill);
+    border-color: var(--gx-hairline);
+  }
+}
+html[data-glass-ui] [data-glass-settings] .gx-settings-reset:active:not(:disabled) {
+  box-shadow: inset 0 1px var(--gx-edge-soft);
+}
+
+@media (forced-colors: active) {
+  html[data-glass-ui] [data-glass-settings] :is(.gx-settings-range, .gx-settings-toggles, .gx-settings-value, .gx-settings-status, .gx-settings-reset) {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+  html[data-glass-ui] [data-glass-settings] .gx-settings-status::before {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+}
+
+/* === 13 质量档与回退 ====================================================== */
+/* Auto only augments full quality; an explicit static choice always wins. */
+html[data-glass-ui][data-glass-quality='balanced'],
+html[data-glass-ui][data-glass-quality='full'][data-glass-auto='balanced'] {
+  --gx-blur-pane: calc(6px + 10px * var(--gx-strength, .6));
+  --gx-blur-float: calc(12px + 10px * var(--gx-strength, .6));
+  --gx-sat: calc(120% + 50% * var(--gx-strength, .6));
+}
+html[data-glass-ui][data-glass-quality='balanced'] body::before,
+html[data-glass-ui][data-glass-quality='balanced'] body::after,
+html[data-glass-ui][data-glass-quality='full'][data-glass-auto='balanced'] body::before,
+html[data-glass-ui][data-glass-quality='full'][data-glass-auto='balanced'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-quality='static'] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-quality='static'] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-quality='static'] body {
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-quality='static'] body::before,
+html[data-glass-ui][data-glass-quality='static'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-quality='static'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui][data-glass-quality='static'] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-quality='static'] body::before,
+html[data-glass-ui][data-glass-quality='static'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-quality='static'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]) {
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-quality='static'] *,
+html[data-glass-ui][data-glass-quality='static'] *::before,
+html[data-glass-ui][data-glass-quality='static'] *::after {
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+html[data-glass-ui][data-glass-quality='static'] :is([class*='newSession'], [class*='panelRow'], [class*='sessionRow'], [class*='projectRow'], [class*='callRow'], [class*='iconButton'], [class*='headerMenuButton']):is(:hover, :active) {
+  transform: none !important;
+}
+html[data-glass-ui][data-glass-transparency='reduced'] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-transparency='reduced'] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-transparency='reduced'] body {
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-transparency='reduced'] body::before,
+html[data-glass-ui][data-glass-transparency='reduced'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-transparency='reduced'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui][data-glass-transparency='reduced'] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-contrast='more'] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-contrast='more'] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-contrast='more'] body {
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-contrast='more'] body::before,
+html[data-glass-ui][data-glass-contrast='more'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-contrast='more'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui][data-glass-contrast='more'] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-reduced-motion='true'] body::before,
+html[data-glass-ui][data-glass-reduced-motion='true'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-reduced-motion='true'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]) {
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-reduced-motion='true'] *,
+html[data-glass-ui][data-glass-reduced-motion='true'] *::before,
+html[data-glass-ui][data-glass-reduced-motion='true'] *::after {
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+html[data-glass-ui][data-glass-reduced-motion='true'] :is([class*='newSession'], [class*='panelRow'], [class*='sessionRow'], [class*='projectRow'], [class*='callRow'], [class*='iconButton'], [class*='headerMenuButton']):is(:hover, :active) {
+  transform: none !important;
+}
+@media (prefers-reduced-transparency: reduce) {
+html[data-glass-ui] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body {
+  background-image: none !important;
+}
+html[data-glass-ui] body::before,
+html[data-glass-ui] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+}
+@media (prefers-contrast: more) {
+html[data-glass-ui] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body {
+  background-image: none !important;
+}
+html[data-glass-ui] body::before,
+html[data-glass-ui] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+}
+@media (prefers-reduced-motion: reduce) {
+html[data-glass-ui] body::before,
+html[data-glass-ui] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]) {
+  animation: none !important;
+}
+html[data-glass-ui] *,
+html[data-glass-ui] *::before,
+html[data-glass-ui] *::after {
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+html[data-glass-ui] :is([class*='newSession'], [class*='panelRow'], [class*='sessionRow'], [class*='projectRow'], [class*='callRow'], [class*='iconButton'], [class*='headerMenuButton']):is(:hover, :active) {
+  transform: none !important;
+}
+}
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+html[data-glass-ui] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body {
+  background-image: none !important;
+}
+html[data-glass-ui] body::before,
+html[data-glass-ui] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+}
+html[data-glass-ui][data-glass-forced-colors='on'] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] body {
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] body::before,
+html[data-glass-ui][data-glass-forced-colors='on'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui][data-glass-forced-colors='on'] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] body::before,
+html[data-glass-ui][data-glass-forced-colors='on'] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]) {
+  animation: none !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] *,
+html[data-glass-ui][data-glass-forced-colors='on'] *::before,
+html[data-glass-ui][data-glass-forced-colors='on'] *::after {
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] :is([class*='newSession'], [class*='panelRow'], [class*='sessionRow'], [class*='projectRow'], [class*='callRow'], [class*='iconButton'], [class*='headerMenuButton']):is(:hover, :active) {
+  transform: none !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'],
+html[data-glass-ui][data-glass-forced-colors='on'] body,
+html[data-glass-ui][data-glass-forced-colors='on'] body[data-ds-dark-theme] {
+  --gx-canvas: Canvas;
+  --gx-pane-fill: Canvas;
+  --gx-pane-fill-strong: Canvas;
+  --gx-card-fill: Canvas;
+  --gx-card-fill-soft: Canvas;
+  --gx-float-fill: Canvas;
+  --gx-well-fill: Canvas;
+  --gx-hairline: CanvasText;
+  --gx-hairline-soft: CanvasText;
+  --dsw-alias-label-primary: CanvasText;
+  --dsw-alias-label-secondary: CanvasText;
+  --dsw-alias-label-tertiary: CanvasText;
+  --dsw-alias-label-caption: CanvasText;
+  --dsw-alias-brand-primary: LinkText;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] body {
+  color: CanvasText !important;
+  background: Canvas !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui][data-glass-forced-colors='on'] [data-glass-settings] {
+  color: CanvasText !important;
+  background: Canvas !important;
+  border: 1px solid CanvasText !important;
+  box-shadow: none !important;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] :is(button, input, textarea, [role='tab'], [role='menuitem'], [role='option'], a):focus-visible,
+html[data-glass-ui][data-glass-forced-colors='on'] .gx-settings-option input:focus-visible + span {
+  outline: 2px solid Highlight !important;
+  outline-offset: 2px;
+}
+html[data-glass-ui][data-glass-forced-colors='on'] :is([aria-selected='true'], [aria-current='true'], [data-active='true'], [class*='tabActive']),
+html[data-glass-ui][data-glass-forced-colors='on'] .gx-settings-option input:checked + span {
+  color: HighlightText !important;
+  background: Highlight !important;
+  border-color: Highlight !important;
+  box-shadow: none !important;
+}
+@media (forced-colors: active) {
+html[data-glass-ui] {
+  --gx-pane-fill: #e4e9f2;
+  --gx-pane-fill-strong: #f2f5fa;
+  --gx-card-fill: #f7f9fc;
+  --gx-card-fill-soft: #edf1f7;
+  --gx-float-fill: #f7f9fc;
+  --gx-seg-fill: #e6ebf3;
+  --gx-tab-active-fill: #ffffff;
+  --gx-film-fill: #e9edf4;
+  --gx-well-fill: #e0e6ef;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body[data-ds-dark-theme] {
+  --gx-pane-fill: #151d30;
+  --gx-pane-fill-strong: #1b2438;
+  --gx-card-fill: #253148;
+  --gx-card-fill-soft: #202b40;
+  --gx-float-fill: #202a40;
+  --gx-seg-fill: #141d30;
+  --gx-tab-active-fill: #34435f;
+  --gx-film-fill: #26334c;
+  --gx-well-fill: #111a2a;
+  --gx-blur-pane: 0px;
+  --gx-blur-float: 0px;
+  --gx-pane-sheen: none;
+  --gx-card-sheen: none;
+  --dsw-mask-blur: none;
+}
+html[data-glass-ui] body {
+  background-image: none !important;
+}
+html[data-glass-ui] body::before,
+html[data-glass-ui] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui] #root :is([style*='grid-template-columns'], [class$='_frame']):has(> [class*='sidebarCol'])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+}
+html[data-glass-ui] body::before,
+html[data-glass-ui] body::after {
+  display: none !important;
+  animation: none !important;
+}
+html[data-glass-ui] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]) {
+  animation: none !important;
+}
+html[data-glass-ui] *,
+html[data-glass-ui] *::before,
+html[data-glass-ui] *::after {
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+html[data-glass-ui] :is([class*='newSession'], [class*='panelRow'], [class*='sessionRow'], [class*='projectRow'], [class*='callRow'], [class*='iconButton'], [class*='headerMenuButton']):is(:hover, :active) {
+  transform: none !important;
+}
+html[data-glass-ui],
+html[data-glass-ui] body,
+html[data-glass-ui] body[data-ds-dark-theme] {
+  --gx-canvas: Canvas;
+  --gx-pane-fill: Canvas;
+  --gx-pane-fill-strong: Canvas;
+  --gx-card-fill: Canvas;
+  --gx-card-fill-soft: Canvas;
+  --gx-float-fill: Canvas;
+  --gx-well-fill: Canvas;
+  --gx-hairline: CanvasText;
+  --gx-hairline-soft: CanvasText;
+  --dsw-alias-label-primary: CanvasText;
+  --dsw-alias-label-secondary: CanvasText;
+  --dsw-alias-label-tertiary: CanvasText;
+  --dsw-alias-label-caption: CanvasText;
+  --dsw-alias-brand-primary: LinkText;
+}
+html[data-glass-ui] body {
+  color: CanvasText !important;
+  background: Canvas !important;
+}
+html[data-glass-ui] :is([class*='sidebarCol'], [class*='centerCol'], [class*='rightbarCol'], [class*='composerSeat'] [class*='_card'], [role='menu'], [role='listbox'], [role='dialog'], [role='alertdialog'], [role='tooltip'], [class*='_toast'], [data-sidebar-mask]),
+html[data-glass-ui] [data-glass-settings] {
+  color: CanvasText !important;
+  background: Canvas !important;
+  border: 1px solid CanvasText !important;
+  box-shadow: none !important;
+}
+html[data-glass-ui] :is(button, input, textarea, [role='tab'], [role='menuitem'], [role='option'], a):focus-visible,
+html[data-glass-ui] .gx-settings-option input:focus-visible + span {
+  outline: 2px solid Highlight !important;
+  outline-offset: 2px;
+}
+html[data-glass-ui] :is([aria-selected='true'], [aria-current='true'], [data-active='true'], [class*='tabActive']),
+html[data-glass-ui] .gx-settings-option input:checked + span {
+  color: HighlightText !important;
+  background: Highlight !important;
+  border-color: Highlight !important;
+  box-shadow: none !important;
+}
+}

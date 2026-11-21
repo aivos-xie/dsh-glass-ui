@@ -1,0 +1,3 @@
+- insert:
+    - id: glass-ui
+      name: '@dsh-desktop/glass-ui'

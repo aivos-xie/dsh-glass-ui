@@ -1,0 +1,253 @@
+/* Follow the current theme's opaque tokens until a glass mode is available. */
+html[data-glass-ui] body {
+  --gx-segment-fill: var(--gx-seg-fill);
+  --gx-segment-wash: none;
+  --gx-segment-glint: none;
+  --gx-segment-pick-sheen: none;
+  --gx-segment-rim: var(--gx-hairline);
+  --gx-segment-hover: var(--gx-film-fill);
+  --gx-segment-selection: var(--gx-tab-active-fill);
+  --gx-segment-ink: var(--dsw-alias-label-primary);
+  --gx-segment-depth: rgb(13 20 40 / .2);
+}
+
+@supports (backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px)) {
+  html[data-glass-ui]:where(:not([data-glass-quality='static'], [data-glass-transparency='reduced'], [data-glass-contrast='more'], [data-glass-forced-colors='on'])) body {
+    --gx-segment-fill: rgb(225 236 250 / .72);
+    --gx-segment-light: rgb(133 195 219 / .29);
+    --gx-segment-shade: rgb(147 118 223 / .26);
+    --gx-segment-reflection: rgb(255 255 255 / .34);
+    --gx-segment-rim: rgb(92 110 165 / .34);
+    --gx-segment-hover: rgb(255 255 255 / .36);
+    --gx-segment-selection: rgb(246 247 255 / .57);
+    --gx-segment-ink: #3d3575;
+    --gx-segment-depth: rgb(42 48 89 / .23);
+    --gx-segment-wash: radial-gradient(ellipse at 5% 0%, var(--gx-segment-light), transparent 64%),
+      radial-gradient(ellipse at 96% 110%, var(--gx-segment-shade), transparent 70%);
+    --gx-segment-glint: linear-gradient(122deg, transparent 24%, var(--gx-segment-reflection) 26% 38%, transparent 40%);
+    --gx-segment-pick-sheen: linear-gradient(131deg, var(--gx-segment-reflection), transparent 65%);
+  }
+
+  html[data-glass-ui]:where(:not([data-glass-quality='static'], [data-glass-transparency='reduced'], [data-glass-contrast='more'], [data-glass-forced-colors='on'])) body[data-ds-dark-theme] {
+    --gx-segment-fill: rgb(29 36 55 / .73);
+    --gx-segment-light: rgb(78 166 195 / .29);
+    --gx-segment-shade: rgb(144 99 201 / .39);
+    --gx-segment-reflection: rgb(160 173 232 / .19);
+    --gx-segment-rim: rgb(190 202 250 / .35);
+    --gx-segment-hover: rgb(209 218 255 / .09);
+    --gx-segment-selection: rgb(168 183 231 / .26);
+    --gx-segment-ink: #ede6ff;
+    --gx-segment-depth: rgb(3 7 20 / .47);
+  }
+}
+
+html[data-glass-ui] :is(
+  [data-conversation-tabs],
+  .gx-settings-options,
+  [class$='_cubeRow']:where([data-shortcut-modal='settings'] *):has(> [aria-pressed]:where([class*='_themeCube'])),
+  [role='tablist'][style*='--dsh-segment-count:'],
+  [role='tablist'][data-size]:where(:has(> [aria-hidden='true'][style*='--segmented-tabs-inset']))
+) {
+  --gx-pill-radius: 999px;
+  --gx-pill-fill: var(--gx-segment-selection);
+  --gx-pill-border: var(--gx-segment-rim);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  border: 1px solid var(--gx-segment-rim);
+  border-radius: 24px;
+  background: var(--gx-segment-wash) var(--gx-segment-fill);
+  box-shadow: inset 0 1px 0 var(--gx-edge-soft), 0 7px 13px -12px var(--gx-segment-depth);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: var(--gx-segment-glint);
+    pointer-events: none;
+  }
+
+  & > :is(button[role='tab'], button[class*='_themeCube'], .gx-settings-option) {
+    position: relative;
+    z-index: 1;
+  }
+
+  & > :is(button[role='tab'], button[class*='_themeCube']),
+  & > .gx-settings-option > span {
+    border: 1px solid transparent;
+    border-radius: var(--gx-pill-radius);
+    background: transparent;
+    color: var(--dsw-alias-label-secondary);
+    box-shadow: none;
+    transition-property: color;
+  }
+
+  & > button[role='tab']:where([class*='_tab']) {
+    color: var(--dsw-alias-label-secondary) !important;
+  }
+
+  /* Render a selected chip immediately, including before the slide controller mounts. */
+  & > :is(button[role='tab'][aria-selected='true'], button[class*='_themeCube'][aria-pressed='true']),
+  & > .gx-settings-option > input:checked + span {
+    border-color: var(--gx-segment-rim);
+    background: var(--gx-segment-pick-sheen) var(--gx-segment-selection);
+    color: var(--gx-segment-ink) !important;
+    box-shadow: inset 0 1px 0 var(--gx-edge-soft), inset 0 -1px 0 var(--gx-edge-bottom), 0 2px 4px -2px var(--gx-segment-depth);
+  }
+
+  &:where([data-glass-pill]) > :is(button[role='tab'][aria-selected='true'], button[class*='_themeCube'][aria-pressed='true']),
+  &:where([data-glass-pill]) > .gx-settings-option > input:checked + span {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  & > :is(button[role='tab'], button[class*='_themeCube']):focus-visible,
+  & > .gx-settings-option > input:focus-visible + span {
+    outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-brand-primary));
+    outline-offset: -2px;
+  }
+
+  & > :is(button[role='tab'], button[class*='_themeCube']):is(:disabled, [aria-disabled='true']),
+  & > .gx-settings-option > input:disabled + span {
+    color: var(--dsw-alias-label-dimmed, var(--dsw-alias-label-secondary)) !important;
+    cursor: default;
+  }
+
+  @media (hover: hover) {
+    & > :is(button[role='tab'], button[class*='_themeCube']):hover:not(:disabled, [aria-disabled='true'], [aria-selected='true'], [aria-pressed='true']),
+    & > .gx-settings-option:hover > input:not(:disabled, :checked) + span {
+      background-color: var(--gx-segment-hover);
+    }
+  }
+}
+
+/* Conversation tabs have negative host margins around their underline.
+   The raised capsule uses each button's actual box as its click target. */
+html[data-glass-ui] [data-conversation-tabs] {
+  width: fit-content;
+  flex-wrap: wrap;
+  gap: 3px !important;
+  padding: 3px;
+}
+
+html[data-glass-ui] [data-conversation-tabs] > button[role='tab'] {
+  min-height: 29px;
+  margin: 0;
+  padding: 4px 10px !important;
+}
+
+html[data-glass-ui] [data-conversation-tabs] > button[role='tab']::after {
+  display: none;
+}
+
+html[data-glass-ui] .gx-settings-options {
+  width: fit-content;
+  gap: 3px;
+  padding: 3px;
+}
+
+html[data-glass-ui] .gx-settings-options > .gx-settings-option {
+  align-self: flex-start;
+}
+
+html[data-glass-ui] .gx-settings-option > span {
+  min-height: 32px;
+  padding-inline: 9px;
+}
+
+html[data-glass-ui] [data-shortcut-modal='settings'] [class$='_cubeRow']:has(> button[class*='_themeCube'][aria-pressed]) {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 24px;
+}
+
+/* The host already animates its own indicator in the two segmented primitives.
+   Keep it as the fallback and hide it when the shared capsule is ready. */
+html[data-glass-ui] :is(
+  [role='tablist'][style*='--dsh-segment-count:'],
+  [role='tablist'][data-size]:where(:has(> [aria-hidden='true'][style*='--segmented-tabs-inset']))
+) {
+  & > [aria-hidden='true'][class*='_indicator_'] {
+    border: 1px solid var(--gx-segment-rim);
+    border-radius: var(--gx-pill-radius);
+    background: var(--gx-segment-pick-sheen) var(--gx-segment-selection);
+    box-shadow: inset 0 1px 0 var(--gx-edge-soft), 0 2px 4px -2px var(--gx-segment-depth);
+  }
+
+  & > button[role='tab'][aria-selected='true'] {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &:where([data-glass-pill]) > [aria-hidden='true'][class*='_indicator_'] {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  html[data-glass-ui] :is(body, body[data-ds-dark-theme]) {
+    --gx-segment-fill: var(--gx-seg-fill);
+    --gx-segment-wash: none;
+    --gx-segment-glint: none;
+    --gx-segment-pick-sheen: none;
+    --gx-segment-rim: var(--gx-hairline);
+    --gx-segment-hover: var(--gx-film-fill);
+    --gx-segment-selection: var(--gx-tab-active-fill);
+    --gx-segment-ink: var(--dsw-alias-label-primary);
+  }
+}
+
+html[data-glass-ui][data-glass-quality='static'] :is(
+  [role='tablist'][style*='--dsh-segment-count:'],
+  [role='tablist'][data-size]:where(:has(> [aria-hidden='true'][style*='--segmented-tabs-inset']))
+) > [aria-hidden='true'][class*='_indicator_'] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce), (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  html[data-glass-ui] :is(
+    [role='tablist'][style*='--dsh-segment-count:'],
+    [role='tablist'][data-size]:where(:has(> [aria-hidden='true'][style*='--segmented-tabs-inset']))
+  ) > [aria-hidden='true'][class*='_indicator_'] {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  html[data-glass-ui] :is(body, body[data-ds-dark-theme]) {
+    --gx-segment-fill: Canvas;
+    --gx-segment-rim: ButtonText;
+    --gx-segment-ink: HighlightText;
+  }
+
+  html[data-glass-ui] :is(
+    [data-conversation-tabs],
+    .gx-settings-options,
+    [class$='_cubeRow']:where([data-shortcut-modal='settings'] *):has(> [aria-pressed]:where([class*='_themeCube'])),
+    [role='tablist'][style*='--dsh-segment-count:'],
+    [role='tablist'][data-size]:where(:has(> [aria-hidden='true'][style*='--segmented-tabs-inset']))
+  ) {
+    & > :is(button[role='tab'][aria-selected='true'], button[class*='_themeCube'][aria-pressed='true']),
+    & > .gx-settings-option > input:checked + span {
+      forced-color-adjust: none;
+      border-color: Highlight !important;
+      background: Highlight !important;
+      color: HighlightText !important;
+    }
+
+    & > :is(button[role='tab'][aria-selected='true'], button[class*='_themeCube'][aria-pressed='true']):focus-visible,
+    & > .gx-settings-option > input:checked:focus-visible + span {
+      outline-color: HighlightText !important;
+    }
+
+    & > [aria-hidden='true'][class*='_indicator_'] {
+      visibility: hidden;
+    }
+  }
+}

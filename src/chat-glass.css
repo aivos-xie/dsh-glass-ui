@@ -1,0 +1,144 @@
+/* Conversation surfaces sit inside the shell glazing. Keep message rows unfiltered
+   so a long transcript does not create a separate compositing layer per message. */
+html[data-glass-ui] {
+  --gx-chat-light: 109 140 250;
+  --gx-chat-cool: 43 178 196;
+  --gx-chat-light-alpha: calc(.09 + .19 * var(--gx-strength, .6));
+  --gx-chat-cool-alpha: calc(.06 + .1 * var(--gx-strength, .6));
+  --gx-chat-composer-base: rgb(249 251 255 / .44);
+  --gx-chat-composer-sheen: rgb(255 255 255 / .61);
+  --gx-chat-response: rgb(252 253 255 / .23);
+  --gx-chat-message: rgb(233 241 255 / .58);
+  --gx-chat-message-rim: rgb(104 133 207 / .22);
+}
+
+html[data-glass-ui] body[data-ds-dark-theme] {
+  --gx-chat-light: 105 129 245;
+  --gx-chat-cool: 54 173 184;
+  --gx-chat-composer-base: rgb(20 27 46 / .54);
+  --gx-chat-composer-sheen: rgb(171 193 255 / .14);
+  --gx-chat-response: rgb(114 139 207 / .085);
+  --gx-chat-message: rgb(94 133 215 / .22);
+  --gx-chat-message-rim: rgb(137 165 236 / .25);
+}
+
+html[data-glass-ui][data-glass-tone='cool'] body {
+  --gx-chat-light: 59 154 222;
+  --gx-chat-cool: 55 192 172;
+}
+
+html[data-glass-ui][data-glass-tone='neutral'] body {
+  --gx-chat-light: 126 143 166;
+  --gx-chat-cool: 151 158 170;
+}
+
+html[data-glass-ui]:where(:not([data-glass-quality='static'])) [data-conversation-content][data-content-phase='hero'] {
+  background-image:
+    radial-gradient(ellipse 59% 42% at 50% 57%, rgb(var(--gx-chat-light) / var(--gx-chat-light-alpha)), transparent 88%),
+    radial-gradient(ellipse 50% 48% at 80% 100%, rgb(var(--gx-chat-cool) / var(--gx-chat-cool-alpha)), transparent 92%) !important;
+}
+
+html[data-glass-ui] [data-conversation-content] [data-composer-card] {
+  border: 1px solid var(--gx-hairline-soft) !important;
+  border-radius: 20px !important;
+  background-clip: padding-box;
+  box-shadow: var(--gx-shadow-float), inset 0 1px 0 var(--gx-edge-strong), inset 0 -1px 0 var(--gx-fringe);
+  transition: border-color var(--gx-fast), box-shadow var(--gx-fast);
+}
+
+html[data-glass-ui]:where(:not([data-glass-quality='static'])) [data-conversation-content] [data-composer-card] {
+  background-color: var(--gx-chat-composer-base) !important;
+  background-image:
+    linear-gradient(146deg, var(--gx-chat-composer-sheen), transparent 54%),
+    linear-gradient(0deg, rgb(var(--gx-chat-light) / .10), transparent 55%) !important;
+  -webkit-backdrop-filter: blur(var(--gx-blur-pane)) saturate(var(--gx-sat));
+  backdrop-filter: blur(var(--gx-blur-pane)) saturate(var(--gx-sat));
+}
+
+html[data-glass-ui] [data-conversation-content] [data-composer-card]:focus-within {
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 57%, var(--gx-hairline-soft)) !important;
+  box-shadow: var(--gx-shadow-float), inset 0 1px 0 var(--gx-edge-strong), 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 18%, transparent);
+}
+
+html[data-glass-ui] [data-conversation-content] [data-composer-input] {
+  caret-color: var(--dsw-alias-brand-text);
+}
+
+html[data-glass-ui] [data-conversation-content] [data-composer-input] + [class$='_placeholder'] {
+  color: var(--dsw-alias-label-secondary);
+}
+
+html[data-glass-ui][data-glass-messages='on'] [data-conversation-content] [data-message-bubble] {
+  background-color: var(--gx-chat-message) !important;
+  background-image: linear-gradient(135deg, var(--gx-chat-composer-sheen), transparent 72%);
+  border-color: var(--gx-chat-message-rim);
+  box-shadow: inset 0 0 0 1px var(--gx-chat-message-rim), inset 0 1px 0 var(--gx-edge-soft);
+}
+
+/* Extend the painted background without narrowing the text column or
+   creating a stacking context across the host's wide-table gutters. */
+html[data-glass-ui][data-glass-messages='on'] [data-conversation-content]
+[data-chat-flow-kind='assistant-step']:not([data-chat-group-part='reasoning'])
+> [data-slot='conversation.chat.node'] > [class$='_root']:has(> [class$='_body']) {
+  margin-inline: -7px;
+  padding: 5px 7px;
+  border-radius: var(--gx-radius-card);
+  background-color: var(--gx-chat-response);
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--gx-chat-composer-sheen) 42%, transparent), transparent 55%);
+  box-shadow: inset 0 0 0 1px var(--gx-hairline-soft), inset 0 1px 0 var(--gx-edge-soft);
+}
+
+/* A wide table can reach beyond the message column. Fade the response
+   surface at its edges and let the table paint a continuous surface. */
+html[data-glass-ui][data-glass-messages='on'] [data-conversation-content]
+[data-chat-flow-kind='assistant-step']:not([data-chat-group-part='reasoning'])
+> [data-slot='conversation.chat.node'] > [class$='_root']:has(.md-table-wide) {
+  background-color: transparent;
+  background-image: linear-gradient(140deg, var(--gx-chat-response), transparent 83%);
+  box-shadow: none;
+}
+
+html[data-glass-ui][data-glass-messages='on'] [data-conversation-content] .md-table-wide > table {
+  background-color: var(--gx-card-fill-soft);
+}
+
+html[data-glass-ui][data-glass-quality='static'] [data-conversation-content] {
+  --gx-chat-composer-sheen: transparent;
+  --gx-chat-response: var(--gx-card-fill-soft);
+  --gx-chat-message: var(--gx-card-fill);
+  --gx-chat-message-rim: var(--gx-hairline-soft);
+}
+
+html[data-glass-ui][data-glass-quality='static'] [data-conversation-content] [data-composer-card] {
+  background: var(--gx-float-fill) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  html[data-glass-ui] [data-conversation-content] [data-composer-card] {
+    background: var(--gx-float-fill) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  html[data-glass-ui] [data-conversation-content][data-content-phase='hero'] {
+    background-image: none !important;
+  }
+  html[data-glass-ui] [data-conversation-content] [data-composer-card] {
+    background: var(--gx-float-fill) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  html[data-glass-ui] [data-conversation-content] [data-composer-card] {
+    border-color: CanvasText !important;
+    background: Canvas !important;
+    box-shadow: none !important;
+  }
+  html[data-glass-ui] [data-conversation-content] [data-composer-card]:focus-within {
+    border-color: Highlight !important;
+  }
+}

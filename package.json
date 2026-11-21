@@ -1,0 +1,67 @@
+{
+  "name": "@dsh-desktop/glass-ui",
+  "version": "1.4.1",
+  "description": "Glass UI 玻璃外观：分层磨砂、可调玻璃强度和背景色调，支持深浅主题与系统辅助功能偏好。",
+  "author": "aivos-xie",
+  "homepage": "https://github.com/aivos-xie/dsh-glass-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aivos-xie/dsh-glass-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aivos-xie/dsh-glass-ui/issues"
+  },
+  "type": "module",
+  "main": "index.js",
+  "icon": "icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./lib/client.js",
+    "./locale/en.json": "./locale/en.json",
+    "./locale/zh.json": "./locale/zh.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "cordis.patch.yml",
+    "locale",
+    "docs",
+    "icon.svg",
+    "src",
+    "build.mjs"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node --check index.js && node --check lib/client.js",
+    "test": "node test-contract.mjs",
+    "test:browser": "node test-browser.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "glassmorphism",
+    "theme",
+    "ui-skin",
+    "frosted-glass"
+  ],
+  "license": "MIT"
+}

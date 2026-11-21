@@ -1,0 +1,117 @@
+/* One glass facet per segment group. Button labels paint above this layer. */
+html[data-glass-ui] [data-glass-pill]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--gx-pill-width);
+  height: var(--gx-pill-height);
+  box-sizing: border-box;
+  transform: translate3d(var(--gx-pill-x), var(--gx-pill-y), 0);
+  border: 1px solid var(--gx-pill-border, var(--gx-hairline));
+  border-radius: var(--gx-pill-radius, 999px);
+  background:
+    var(--gx-pill-sheen, linear-gradient(161deg, var(--gx-edge-soft), transparent 44%)),
+    linear-gradient(115deg, rgb(140 194 245 / .11), transparent 52%, rgb(172 139 232 / .12)),
+    var(--gx-pill-fill, var(--gx-tab-active-fill));
+  box-shadow:
+    inset 0 1px 0 var(--gx-edge-strong), inset 1px 0 0 var(--gx-rim),
+    inset 0 -1px 0 var(--gx-edge-bottom), 0 3px 7px -4px var(--gx-pill-depth, rgb(13 20 40 / .42));
+  pointer-events: none;
+}
+
+/* Guide entries keep their native button geometry. The reflection only
+   affects the background and the narrow rim. */
+html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']) {
+  --gx-guide-fill: var(--gx-card-fill-soft);
+  border: 1px solid var(--gx-hairline-soft);
+  background: var(--gx-card-sheen), var(--gx-guide-fill);
+  box-shadow: var(--gx-shadow-card), inset 0 1px var(--gx-edge-soft), inset 0 -1px var(--gx-edge-bottom);
+}
+
+html[data-glass-ui] [data-sidebar-right-guide] [class$='_entryDescription'] {
+  color: var(--dsw-alias-label-secondary);
+}
+
+@supports (backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px)) {
+  html[data-glass-ui]:not([data-glass-quality='static']) [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']) {
+    background-image:
+      var(--gx-card-sheen),
+      linear-gradient(118deg, rgb(91 174 229 / .11), transparent 51%, rgb(158 117 223 / .12));
+  }
+}
+
+@media (hover: hover) {
+  html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']):hover:not(:disabled) {
+    --gx-guide-fill: var(--gx-card-fill);
+    border-color: var(--gx-hairline);
+  }
+}
+
+html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']):focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}
+
+html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']):is(:active, [aria-expanded='true']):not(:disabled) {
+  --gx-guide-fill: var(--gx-tab-active-fill);
+  box-shadow: inset 0 1px 4px var(--gx-edge-bottom), inset 0 -1px var(--gx-edge-soft);
+}
+
+html[data-glass-ui][data-glass-motion='on'] [data-glass-guide-lit] {
+  position: relative;
+  isolation: isolate;
+}
+
+html[data-glass-ui][data-glass-motion='on'] [data-glass-guide-lit]::before,
+html[data-glass-ui][data-glass-motion='on'] [data-glass-guide-lit]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+html[data-glass-ui][data-glass-motion='on'] [data-glass-guide-lit]::before {
+  background: radial-gradient(circle 118px at var(--gx-guide-x) var(--gx-guide-y), rgb(170 191 255 / .33), transparent);
+}
+
+@supports (mask-composite: exclude) {
+  html[data-glass-ui][data-glass-motion='on'] [data-glass-guide-lit]::after {
+    padding: 1px;
+    background: radial-gradient(circle 88px at var(--gx-guide-x) var(--gx-guide-y), rgb(233 236 255 / .83), transparent);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+}
+
+html[data-glass-ui][data-glass-quality='static'] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']) {
+  background-image: none;
+}
+
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']) {
+    background: var(--gx-card-fill-soft);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']) {
+    background-image: none;
+    border-color: var(--gx-hairline);
+    box-shadow: none;
+  }
+}
+
+@media (forced-colors: active) {
+  html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']) {
+    color: ButtonText;
+    background: ButtonFace;
+    border-color: ButtonText;
+    box-shadow: none;
+  }
+  html[data-glass-ui] [data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[class$='_entry'][aria-haspopup='menu']):focus-visible {
+    outline-color: Highlight;
+  }
+}

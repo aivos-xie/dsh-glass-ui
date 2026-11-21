@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Glass UI",
+    "description": "Frosted glass for chats, sidebars, and overlays. Adjust it live in Settings → Glass UI.",
+    "detail": "Adds layered frosted materials and edge highlights to chats, sidebars, the composer, and overlays, following the current light or dark theme. Open Settings → Glass UI to adjust glass intensity, background tone, message surfaces, rendering quality, transparency, motion, and texture. Changes take effect immediately, save automatically, and can be reset. The interface responds to system preferences for reduced motion, reduced transparency, increased contrast, and forced colors."
+  }
+}

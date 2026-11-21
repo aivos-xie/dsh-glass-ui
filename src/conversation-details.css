@@ -1,0 +1,162 @@
+/* Conversation details. ContextMeter's anchor identifies both the composer
+   control and its dialog, which is rendered directly into document.body. */
+html[data-glass-ui] section[data-testid='todo-panel'] {
+  border: 1px solid var(--gx-hairline-soft);
+  border-radius: var(--gx-radius-card);
+  background: var(--gx-pane-sheen) var(--gx-card-fill);
+  backdrop-filter: none;
+  box-shadow: var(--gx-shadow-card), inset 0 1px var(--gx-edge-soft);
+
+  & button[aria-expanded] {
+    box-sizing: border-box;
+    padding-inline: 6px;
+    border-radius: var(--gx-radius-control);
+  }
+
+  & button[aria-expanded='true'] {
+    background-color: var(--dsw-alias-button-ghost-active-fill);
+  }
+
+  & [class$='_title'] {
+    font-weight: 600;
+  }
+
+  & [class$='_progress'] {
+    margin-inline-start: auto;
+    color: var(--dsw-alias-label-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    text-align: end;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  & li[data-status] {
+    padding-inline: 6px;
+    border-radius: 7px;
+  }
+
+  & li[data-status='in_progress'] {
+    color: var(--dsw-alias-label-primary);
+    background-color: var(--dsw-alias-button-ghost-active-fill);
+  }
+}
+
+html[data-glass-ui] span[style*='anchor-name: --dsh-context-'] button[aria-haspopup='dialog'] {
+  border-radius: 999px;
+  background-color: var(--gx-film-fill);
+  box-shadow: inset 0 0 0 1px var(--gx-hairline-soft), inset 0 1px var(--gx-edge-soft);
+  color: var(--dsw-alias-label-secondary);
+
+  &[aria-expanded='true'] {
+    color: var(--dsw-alias-brand-text);
+    background-color: var(--dsw-alias-button-ghost-active-fill);
+  }
+
+  & circle[class$='_track'] {
+    stroke: color-mix(in srgb, var(--dsw-alias-label-secondary) 36%, transparent);
+  }
+
+  & circle[class$='_fill'] {
+    stroke: var(--dsw-alias-brand-text);
+  }
+}
+
+html[data-glass-ui] [role='dialog'][style*='position-anchor: --dsh-context-'] {
+  /* The base theme sets a shared dialog fill with !important. Keep its border
+     and shadow, and give this smaller panel a clearer reading surface. */
+  background-color: var(--gx-context-surface, var(--gx-float-fill)) !important;
+  backdrop-filter: none;
+
+  & [class$='_headline'] {
+    color: var(--dsw-alias-label-secondary);
+  }
+
+  & [class$='_percent'] {
+    font-size: 15px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & [class$='_bar'] {
+    gap: 0;
+    height: 6px;
+    background-color: var(--gx-well-fill);
+    box-shadow: inset 0 1px 2px var(--gx-hairline-soft);
+  }
+
+  & [class$='_bar'] > [class*='_segment'] {
+    border-radius: 2px;
+    background-color: var(--meter-tint, var(--dsw-alias-brand-text));
+    box-shadow: inset 0 1px var(--gx-context-bar-edge, transparent);
+  }
+}
+
+@supports (backdrop-filter: blur(2px)) {
+  @media (forced-colors: none) and (prefers-contrast: no-preference) {
+    html[data-glass-ui]:where(:not([data-glass-quality='static'], [data-glass-transparency='reduced'], [data-glass-contrast='more'])) [role='dialog'][style*='position-anchor: --dsh-context-'] {
+      --gx-context-surface: color-mix(in srgb, var(--dsw-specific-menu) 68%, var(--gx-float-fill));
+      --gx-context-bar-edge: var(--gx-edge-soft);
+      backdrop-filter: blur(var(--gx-blur-float)) saturate(var(--gx-sat));
+    }
+  }
+}
+
+/* The current session title stays plain text so the host can use it for window drag. */
+html[data-glass-ui] nav[class$='_crumbs'] > [class$='_crumbSeg'] {
+  & > button[class$='_crumb'] {
+    color: var(--dsw-alias-label-secondary);
+    border-radius: var(--gx-radius-control);
+  }
+
+  & > span[class$='_crumbCurrent'] {
+    background-color: var(--gx-seg-fill);
+    box-shadow: inset 0 0 0 1px var(--gx-hairline-soft);
+    font-weight: 600;
+  }
+}
+
+html[data-glass-ui] :is(
+  section[data-testid='todo-panel'] button[aria-expanded],
+  span[style*='anchor-name: --dsh-context-'] button[aria-haspopup='dialog'],
+  nav[class$='_crumbs'] > [class$='_crumbSeg'] > button[class$='_crumb']
+):focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-text);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  html[data-glass-ui] :is(
+    section[data-testid='todo-panel'] button[aria-expanded='false'],
+    span[style*='anchor-name: --dsh-context-'] button[aria-haspopup='dialog'][aria-expanded='false'],
+    nav[class$='_crumbs'] > [class$='_crumbSeg'] > button[class$='_crumb']
+  ):hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+@media (forced-colors: active) {
+  html[data-glass-ui] section[data-testid='todo-panel'] {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+
+  html[data-glass-ui] span[style*='anchor-name: --dsh-context-'] button[aria-haspopup='dialog'] circle[class$='_fill'] {
+    stroke: Highlight;
+  }
+
+  html[data-glass-ui] [role='dialog'][style*='position-anchor: --dsh-context-'] {
+    & [class$='_bar'] {
+      outline: 1px solid CanvasText;
+      outline-offset: -1px;
+    }
+
+    & [class$='_bar'] > [class*='_segment'] {
+      forced-color-adjust: none;
+      box-sizing: border-box;
+      border-inline-end: 1px solid Canvas;
+      background-color: Highlight;
+    }
+  }
+}
